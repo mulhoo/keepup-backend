@@ -1,0 +1,18 @@
+shared:
+  moderation:
+    thresholds:
+      # Below this score: message delivers normally
+      questionable: 0.40
+      # At or above this score: message is blocked and both head coach + AD are notified
+      severe: 0.75
+    # Seconds before giving up on the FastAPI call — must be low enough not to block message sends
+    timeout_seconds: 5
+
+development:
+  service_url: "<%= ENV.fetch('GEMMA_SERVICE_URL', 'http://localhost:8000') %>"
+
+test:
+  service_url: "http://localhost:8000"
+
+production:
+  service_url: "<%= ENV['GEMMA_SERVICE_URL'] %>"

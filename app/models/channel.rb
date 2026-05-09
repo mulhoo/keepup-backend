@@ -26,6 +26,17 @@ class Channel < ApplicationRecord
     channel_type == "broadcast"
   end
 
+  def viewable_by?(user)
+    membership = user.sport_memberships.active.find_by(sport:)
+    return false unless membership
+
+    case channel_type
+    when "coaches_only" then membership.role.in?(%w[head_coach assistant_coach])
+    when "athletes_only" then membership.role.in?(%w[student head_coach assistant_coach])
+    else true
+    end
+  end
+
   private
 
   def notify_head_coaches_if_student_created

@@ -39,12 +39,13 @@ class ModerationNotificationJob < ApplicationJob
     message_key = record.is_a?(Message) ? :message : :direct_message
 
     users.each do |user|
-      ModerationNotification.create!(
+      notif = ModerationNotification.create!(
         recipient: user,
         message_key => record,
         notification_type: notification_type,
         recipient_role: role
       )
+      ModerationAlertNotifier.with(moderation_notification: notif).deliver(user)
     end
   end
 end

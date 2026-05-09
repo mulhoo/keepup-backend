@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_09_000013) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -88,6 +88,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_000013) do
     t.index ["athletic_director_id"], name: "index_coop_authorizations_on_athletic_director_id"
     t.index ["school_id"], name: "index_coop_authorizations_on_school_id"
     t.index ["sport_id", "school_id"], name: "index_coop_authorizations_on_sport_id_and_school_id", unique: true
+  end
+
+  create_table "device_tokens", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token"
+    t.string "platform"
+    t.boolean "active"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_device_tokens_on_user_id"
   end
 
   create_table "direct_messages", force: :cascade do |t|
@@ -220,6 +230,30 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_000013) do
     t.index ["notification_type"], name: "index_moderation_notifications_on_notification_type"
     t.index ["recipient_id", "read_at"], name: "index_mod_notifications_on_recipient_and_read"
     t.index ["recipient_id"], name: "index_moderation_notifications_on_recipient_id"
+  end
+
+  create_table "noticed_events", force: :cascade do |t|
+    t.string "type"
+    t.string "record_type"
+    t.bigint "record_id"
+    t.jsonb "params"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "notifications_count"
+    t.index ["record_type", "record_id"], name: "index_noticed_events_on_record"
+  end
+
+  create_table "noticed_notifications", force: :cascade do |t|
+    t.string "type"
+    t.bigint "event_id", null: false
+    t.string "recipient_type", null: false
+    t.bigint "recipient_id", null: false
+    t.datetime "read_at", precision: nil
+    t.datetime "seen_at", precision: nil
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_id"], name: "index_noticed_notifications_on_event_id"
+    t.index ["recipient_type", "recipient_id"], name: "index_noticed_notifications_on_recipient"
   end
 
   create_table "parent_student_relationships", force: :cascade do |t|
@@ -376,6 +410,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_000013) do
   add_foreign_key "coop_authorizations", "schools"
   add_foreign_key "coop_authorizations", "sports"
   add_foreign_key "coop_authorizations", "users", column: "athletic_director_id"
+  add_foreign_key "device_tokens", "users"
   add_foreign_key "direct_messages", "dm_conversations"
   add_foreign_key "direct_messages", "users", column: "flag_reviewed_by_id"
   add_foreign_key "direct_messages", "users", column: "sender_id"

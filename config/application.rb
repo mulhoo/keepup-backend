@@ -11,7 +11,7 @@ require "action_controller/railtie"
 # require "action_mailbox/engine"
 # require "action_text/engine"
 require "action_view/railtie"
-# require "action_cable/engine"
+require "action_cable/engine"
 # require "rails/test_unit/railtie"
 
 # Require the gems listed in Gemfile, including any gems
@@ -41,6 +41,7 @@ module KeepupBackend
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    config.gemma = config_for(:gemma)
+    config.gemma     = config_for(:gemma)
+    config.demo_mode = ENV.fetch("DEMO_MODE", "false") == "true"
   end
 end

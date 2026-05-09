@@ -32,6 +32,9 @@ class User < ApplicationRecord
            class_name: "AccessLog",
            foreign_key: :accessed_user_id
 
+  has_many :device_tokens, dependent: :destroy
+  has_many :noticed_notifications, class_name: "Noticed::Notification", as: :recipient, dependent: :destroy
+
   belongs_to :theme, optional: true
 
   validates :email, presence: true, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }

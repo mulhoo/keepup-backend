@@ -127,9 +127,7 @@ RSpec.describe Theme, type: :model do
     end
 
     it "falls back to Default Dark when no theme is set" do
-      Theme.create!(name: "Default Dark", scope: :system, variant: :dark,
-                    color_primary: "#1B2F5B", color_accent: "#00E5CC",
-                    color_background: "#0D1B2A", color_surface: "#1B2F5B")
+      create(:theme, name: "Default Dark", scope: :system, variant: :dark)
       user = create(:user)
       expect(user.effective_theme.name).to eq("Default Dark")
     end

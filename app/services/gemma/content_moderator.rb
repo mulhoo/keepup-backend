@@ -10,45 +10,48 @@ module Gemma
   #   questionable (0.40–0.74)   — message delivers flagged; head coach notified for review
   #   severe       (score >= 0.75) — message blocked; head coach + AD notified immediately
   class ContentModerator
-    THRESHOLDS = Rails.application.config.gemma.dig("moderation", "thresholds")
-    QUESTIONABLE_THRESHOLD = THRESHOLDS["questionable"].to_f
-    SEVERE_THRESHOLD = THRESHOLDS["severe"].to_f
+    def self.thresholds
+      Rails.application.config.gemma.dig(:moderation, :thresholds)
+    end
+
+    def self.questionable_threshold = thresholds[:questionable].to_f
+    def self.severe_threshold       = thresholds[:severe].to_f
 
     Result = Data.define(:tier, :flagged, :blocked, :score, :reason)
 
-    # Parses a moderation payload from the mobile client and applies it to the record.
-    # Returns a Result. Does not save — caller must persist via apply_moderation_result!
+    # Used by the private/production path where mobile sends an explicit flagged signal.
     def self.apply(message:, score:, flagged:, reason: nil)
-      new.apply(message: message, score: score, flagged: flagged, reason: reason)
+      new.call(message, score: score, flagged: flagged, reason: reason)
     end
 
-    def apply(message:, score:, flagged:, reason: nil)
+    # Used by the demo path and the private-repo mutations where flagged is derived from score.
+    def self.call(message, score:, reason: nil, flagged: nil)
+      new.call(message, score: score, reason: reason, flagged: flagged)
+    end
+
+    def call(message, score:, reason: nil, flagged: nil)
       score = score.to_f
-      tier = classify(score, flagged)
-      blocked = tier == "severe"
+      tier  = classify(score, flagged)
 
       message.assign_attributes(
         moderation_score: score,
-        flagged: tier != "clear",
-        flag_reason: reason,
-        flag_action: flag_action_for(tier)
+        flagged:          tier != "clear",
+        flag_reason:      reason,
+        flag_action:      flag_action_for(tier)
       )
 
-      Result.new(tier: tier, flagged: tier != "clear", blocked: blocked, score: score, reason: reason)
+      Result.new(tier: tier, flagged: tier != "clear", blocked: tier == "severe", score: score, reason: reason)
     end
 
     private
 
-    def classify(score, flagged)
-      return "clear" unless flagged || score >= QUESTIONABLE_THRESHOLD
+    def classify(score, flagged_override)
+      q = self.class.questionable_threshold
+      s = self.class.severe_threshold
 
-      if score >= SEVERE_THRESHOLD
-        "severe"
-      elsif score >= QUESTIONABLE_THRESHOLD || flagged
-        "questionable"
-      else
-        "clear"
-      end
+      return "clear" unless flagged_override || score >= q
+
+      score >= s ? "severe" : "questionable"
     end
 
     def flag_action_for(tier)

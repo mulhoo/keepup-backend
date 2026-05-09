@@ -19,6 +19,10 @@ class DmConversation < ApplicationRecord
     user == participant_a ? participant_b : participant_a
   end
 
+  def participant?(user)
+    participant_a_id == user.id || participant_b_id == user.id
+  end
+
   private
 
   def participants_are_ordered

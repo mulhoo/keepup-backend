@@ -361,30 +361,200 @@ end
   end
 end
 
-# ── Sample Messages ───────────────────────────────────────────────────────────
+# ── Announcements channel ─────────────────────────────────────────────────────
 
-msg1 = Message.find_or_create_by!(channel: announcements, sender: head_coach, content: "Welcome to the 2025-26 swim season! First practice is Monday at 6am.")
-msg2 = Message.find_or_create_by!(channel: general, sender: student_captain, content: "Can't wait — see everyone Monday!")
-msg3 = Message.find_or_create_by!(channel: general, sender: student_1, content: "Same! Anyone need a ride?")
-Message.find_or_create_by!(channel: athletes_only, sender: student_captain, content: "Team meeting after practice on Wednesday — captains only agenda item.")
+msg_welcome = Message.find_or_create_by!(channel: announcements, sender: head_coach,
+  content: "Welcome to the 2025-26 swim season! First practice is Monday at 6am. Bring your own cap and goggles.") do |m|
+  m.pinned_at  = 2.weeks.ago
+  m.pinned_by  = head_coach
+end
+
+Message.find_or_create_by!(channel: announcements, sender: head_coach,
+  content: "Reminder: all athletes need updated physical forms submitted to the front office before Friday. No form = no practice.")
+
+Message.find_or_create_by!(channel: announcements, sender: asst_coach,
+  content: "Meet schedule for November is posted on the school athletics page. First away meet is Nov 14 @ Eastlake — bus departs at 3:30pm sharp.")
+
+# ── General channel ───────────────────────────────────────────────────────────
+
+msg_general_1 = Message.find_or_create_by!(channel: general, sender: student_captain,
+  content: "Can't wait — see everyone Monday! Who's been training over the summer?")
+
+msg_general_2 = Message.find_or_create_by!(channel: general, sender: student_1,
+  content: "Been doing open water swims at Juanita Beach. Feeling ready 🌊")
+
+Message.find_or_create_by!(channel: general, sender: student_2,
+  content: "Same! Anyone need a ride Monday? I have room for 2 more from the EHS side.")
+
+Message.find_or_create_by!(channel: general, sender: asst_coach,
+  content: "Love the energy. See you all at 6am — don't be late, we're starting dry-land immediately.")
+
+Message.find_or_create_by!(channel: general, sender: student_captain,
+  content: "Coach Nguyen, are we doing time trials first week or just base training?")
+
+Message.find_or_create_by!(channel: general, sender: head_coach,
+  content: "Time trials Thursday. Get some rest Tuesday and Wednesday.")
+
+# ── Questionable message — held, ⚠️ visible to Jordan (student_1) ─────────────
+# Gemma scored this 0.52 — borderline trash talk before a meet.
+# Delivers to the channel but coach sees a review notification.
+
+msg_questionable = Message.find_or_create_by!(channel: general, sender: student_1,
+  content: "Eastlake better watch out, I'm going to absolutely destroy their relays 😤") do |m|
+  m.flagged          = true
+  m.moderation_score = 0.52
+  m.flag_reason      = "Potentially aggressive language targeting another school's athletes"
+  m.flag_action      = "held"
+end
+
+# ── Severe message — blocked, 🚫 visible only to Jordan ──────────────────────
+# Gemma scored this 0.88. Blocked entirely. Coach + AD notified.
+
+msg_severe = Message.find_or_create_by!(channel: general, sender: student_1,
+  content: "I swear if Coach benches me for the Eastlake meet I'm going to lose it on him") do |m|
+  m.flagged          = true
+  m.moderation_score = 0.88
+  m.flag_reason      = "Implicit threat directed at a coach"
+  m.flag_action      = "blocked"
+end
+
+# ── Athletes-only channel ─────────────────────────────────────────────────────
+
+Message.find_or_create_by!(channel: athletes_only, sender: student_captain,
+  content: "Team meeting after practice Wednesday — just athletes, captains have an agenda item to cover.")
+
+Message.find_or_create_by!(channel: athletes_only, sender: student_2,
+  content: "Are parents invited? Mine keeps asking about the banquet planning.")
+
+Message.find_or_create_by!(channel: athletes_only, sender: student_captain,
+  content: "No parents this one. Coaches set this channel up specifically so we have our own space.")
+
+# ── Coaches-only channel ──────────────────────────────────────────────────────
+
+coaches_only = Channel.find_or_create_by!(sport: swimming, name: "coaches") do |c|
+  c.created_by       = head_coach
+  c.channel_type     = :coaches_only
+  c.system_generated = true
+end
+
+ChannelMembership.find_or_create_by!(channel: coaches_only, user: head_coach)
+ChannelMembership.find_or_create_by!(channel: coaches_only, user: asst_coach)
+
+Message.find_or_create_by!(channel: coaches_only, sender: head_coach,
+  content: "Dana — I flagged Jordan's message in general for review. Can you keep an eye on that situation this week?")
+
+Message.find_or_create_by!(channel: coaches_only, sender: asst_coach,
+  content: "On it. I think there's some tension between Jordan and a few of the EHS kids. Will check in before Wednesday.")
 
 # ── Reactions ─────────────────────────────────────────────────────────────────
 
-Reaction.find_or_create_by!(message: msg1, user: student_captain, emoji: "🔥")
-Reaction.find_or_create_by!(message: msg2, user: student_1, emoji: "👍")
-Reaction.find_or_create_by!(message: msg3, user: student_2, emoji: "❤️")
+Reaction.find_or_create_by!(message: msg_welcome,   user: student_captain, emoji: "🔥")
+Reaction.find_or_create_by!(message: msg_welcome,   user: student_1,       emoji: "👍")
+Reaction.find_or_create_by!(message: msg_general_1, user: student_1,       emoji: "👍")
+Reaction.find_or_create_by!(message: msg_general_2, user: student_captain, emoji: "🌊")
+Reaction.find_or_create_by!(message: msg_general_2, user: student_2,       emoji: "❤️")
 
-# ── DM Conversation (coach ↔ captain) ────────────────────────────────────────
+# ── DM Conversations ──────────────────────────────────────────────────────────
 
-dm_conv = DmConversation.between(head_coach, student_captain, swimming)
-DirectMessage.find_or_create_by!(dm_conversation: dm_conv, sender: head_coach, content: "Hey Alex — great leadership at tryouts today.")
+# Coach ↔ Captain
+dm_coach_captain = DmConversation.between(head_coach, student_captain, swimming)
+DirectMessage.find_or_create_by!(dm_conversation: dm_coach_captain, sender: head_coach,
+  content: "Hey Alex — great leadership at tryouts. I'm going to lean on you a lot this season.")
+DirectMessage.find_or_create_by!(dm_conversation: dm_coach_captain, sender: student_captain,
+  content: "Thanks Coach. Quick question — should I be worried about Jordan? Seems a little on edge lately.")
+DirectMessage.find_or_create_by!(dm_conversation: dm_coach_captain, sender: head_coach,
+  content: "I've noticed it too. Coach Patel and I are keeping an eye on it. Thanks for flagging.")
 
-# ── Custom Sport Emoji ────────────────────────────────────────────────────────
+# Coach ↔ Student 1 (Jordan)
+dm_coach_jordan = DmConversation.between(head_coach, student_1, swimming)
+DirectMessage.find_or_create_by!(dm_conversation: dm_coach_jordan, sender: head_coach,
+  content: "Jordan — checking in. How are you feeling about the season?")
+DirectMessage.find_or_create_by!(dm_conversation: dm_coach_jordan, sender: student_1,
+  content: "Honestly kind of stressed. Trying to get my times down before Eastlake.")
+DirectMessage.find_or_create_by!(dm_conversation: dm_coach_jordan, sender: head_coach,
+  content: "That's normal. Let's talk after practice Wednesday — I have some thoughts on your pacing strategy.")
 
+# Parent ↔ Coach
+dm_parent_coach = DmConversation.between(parent_1, head_coach, swimming)
+DirectMessage.find_or_create_by!(dm_conversation: dm_parent_coach, sender: parent_1,
+  content: "Hi Coach Nguyen — Morgan here, Jordan's parent. Just wanted to introduce myself and say thank you for the welcome message.")
+DirectMessage.find_or_create_by!(dm_conversation: dm_parent_coach, sender: head_coach,
+  content: "Hi Morgan, great to meet you. Jordan has a lot of potential — excited to work with them this season.")
+
+# ── Moderation Notifications ──────────────────────────────────────────────────
+# These surface in the coach and AD review dashboards.
+
+# Coach sees the questionable message for review
+ModerationNotification.find_or_create_by!(
+  recipient: head_coach,
+  message: msg_questionable,
+  notification_type: :questionable_review,
+  recipient_role: :head_coach
+)
+
+# Coach + AD both see the severe blocked message
+ModerationNotification.find_or_create_by!(
+  recipient: head_coach,
+  message: msg_severe,
+  notification_type: :severe_alert,
+  recipient_role: :head_coach
+)
+
+ModerationNotification.find_or_create_by!(
+  recipient: lw_ad,
+  message: msg_severe,
+  notification_type: :severe_alert,
+  recipient_role: :athletic_director
+)
+
+# ── Access Logs — demonstrates audit trail + anomaly detection ────────────────
+# Head coach accessed Jordan's DM history multiple times in a short window.
+# The third access is anomaly-flagged by Gemma.
+
+AccessLog.find_or_create_by!(accessor: head_coach, accessed_user: student_1,
+  accessor_role: "head_coach", reason: :conduct_concern, resource_type: "DmConversation",
+  resource_id: dm_coach_jordan.id, sport: swimming) do |log|
+  log.created_at = 3.days.ago
+end
+
+AccessLog.find_or_create_by!(accessor: head_coach, accessed_user: student_1,
+  accessor_role: "head_coach", reason: :safety_issue, resource_type: "DmConversation",
+  resource_id: dm_coach_jordan.id, sport: swimming) do |log|
+  log.created_at = 2.days.ago
+end
+
+anomalous_log = AccessLog.find_or_create_by!(accessor: head_coach, accessed_user: student_1,
+  accessor_role: "head_coach", reason: :conduct_concern, resource_type: "DmConversation",
+  resource_id: dm_coach_jordan.id, sport: swimming) do |log|
+  log.created_at      = 1.day.ago
+  log.anomaly_flagged = true
+  log.anomaly_score   = 0.81
+  log.anomaly_reason  = "Accessor has accessed this student's DM history 3 times in 72 hours with escalating stated reasons. Pattern suggests monitoring behaviour warranting review."
+end
+
+# ── Custom Sport Emojis ───────────────────────────────────────────────────────
+
+# Pending — waiting for Gemma pre-screen + human approval
 SportEmoji.find_or_create_by!(sport: swimming, name: ":swimmer:") do |e|
   e.requested_by = student_captain
-  e.image_url    = "https://example.com/emoji/swimmer.png"
+  e.image_url    = "https://placehold.co/128x128/1B2F5B/00E5CC?text=🏊"
   e.status       = :pending
+end
+
+# Auto-rejected by Gemma — surfaces in student's submission history with reason
+SportEmoji.find_or_create_by!(sport: swimming, name: ":splash_rage:") do |e|
+  e.requested_by = student_1
+  e.image_url    = "https://placehold.co/128x128/FF0000/FFFFFF?text=X"
+  e.status       = :auto_rejected
+end
+
+# Approved — available for reactions
+SportEmoji.find_or_create_by!(sport: swimming, name: ":kangaroo:") do |e|
+  e.requested_by = student_captain
+  e.image_url    = "https://placehold.co/128x128/1B2F5B/FFD700?text=🦘"
+  e.status       = :approved
+  e.reviewed_by  = head_coach
+  e.reviewed_at  = 1.week.ago
 end
 
 puts "Done! Seeded LWSD scenario:"

@@ -13,6 +13,7 @@ class InstitutionRole < ApplicationRecord
   validates :role, presence: true
   validate :scope_presence
 
+  scope :active,       -> { all }
   scope :for_district, ->(district) { where(district:) }
   scope :for_school, ->(school)     { where(school:) }
 

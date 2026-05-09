@@ -2,6 +2,7 @@ class Message < ApplicationRecord
   belongs_to :channel
   belongs_to :message_thread, optional: true
   belongs_to :sender, class_name: "User"
+  belongs_to :pinned_by, class_name: "User", optional: true
   belongs_to :flag_reviewed_by, class_name: "User", optional: true
   belongs_to :deleted_by, class_name: "User", optional: true
 
@@ -30,7 +31,7 @@ class Message < ApplicationRecord
     deleted_at.present?
   end
 
-  # Called by the FastAPI /moderate endpoint response after Gemma 4 on-device flag
+  # Gemma4
   def apply_moderation_result!(score:, flagged:, reason: nil)
     update!(
       moderation_score: score,

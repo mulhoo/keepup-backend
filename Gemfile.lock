@@ -181,6 +181,8 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.3-x86_64-linux-gnu)
       racc (~> 1.4)
+    noticed (2.9.3)
+      rails (>= 6.1.0)
     ostruct (0.6.3)
     parallel (1.28.0)
     parser (3.3.11.1)
@@ -247,6 +249,10 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
+    redis (5.4.1)
+      redis-client (>= 0.22.0)
+    redis-client (0.29.0)
+      connection_pool
     regexp_parser (2.12.0)
     reline (0.6.3)
       io-console (~> 0.5)
@@ -353,10 +359,12 @@ DEPENDENCIES
   graphql (~> 2.3)
   jwt (~> 2.8)
   kamal
+  noticed (~> 2.0)
   pg (~> 1.1)
   puma (>= 5.0)
   rack-cors
   rails (~> 8.0.2)
+  redis (~> 5.0)
   rspec-rails (~> 7.0)
   rubocop-rails-omakase
   shoulda-matchers (~> 6.0)

@@ -16,7 +16,7 @@ class AccessLog < ApplicationRecord
   after_create :create_notification_for_supervisor
   after_create :trigger_anomaly_analysis
 
-  # Called by the FastAPI /analyze_access endpoint response (Gemma 4 behavioral analysis)
+  # Gemma4 Call
   def apply_anomaly_result!(score:, flagged:, reason: nil)
     update!(
       anomaly_score: score,

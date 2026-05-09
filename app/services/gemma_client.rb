@@ -7,7 +7,7 @@ require "json"
 class GemmaClient
   ServiceUnavailable = Class.new(StandardError)
 
-  TIMEOUT = Rails.application.config.gemma.fetch("timeout_seconds", 5).to_i
+  TIMEOUT = (Rails.application.config.gemma.dig(:moderation, :timeout_seconds) || 5).to_i
 
   def self.post(path, body)
     new.post(path, body)
@@ -39,6 +39,6 @@ class GemmaClient
   private
 
   def service_url
-    Rails.application.config.gemma.fetch("service_url")
+    Rails.application.config.gemma[:service_url]
   end
 end

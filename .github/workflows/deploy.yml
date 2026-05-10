@@ -2,15 +2,25 @@ name: Deploy Backend
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging, dev]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set environment name
+        id: env
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "name=prod" >> $GITHUB_OUTPUT
+          else
+            echo "name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -26,19 +36,21 @@ jobs:
       - name: Build and push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          ENV_NAME: ${{ steps.env.outputs.name }}
         run: |
-          docker build \
-            -t $ECR_REGISTRY/hajos-keepup:$IMAGE_TAG \
-            -t $ECR_REGISTRY/hajos-keepup:latest \
+          docker buildx build --platform linux/amd64 \
+            -t $ECR_REGISTRY/hajos-keepup:${{ github.sha }} \
+            -t $ECR_REGISTRY/hajos-keepup:$ENV_NAME \
+            --push \
             .
-          docker push $ECR_REGISTRY/hajos-keepup:$IMAGE_TAG
-          docker push $ECR_REGISTRY/hajos-keepup:latest
+
 
       - name: Deploy to ECS
+        env:
+          ENV_NAME: ${{ steps.env.outputs.name }}
         run: |
           aws ecs update-service \
-            --cluster hajos-keepup-dev \
-            --service hajos-keepup-dev \
+            --cluster hajos-keepup-$ENV_NAME \
+            --service hajos-keepup-$ENV_NAME \
             --force-new-deployment \
             --region us-east-2

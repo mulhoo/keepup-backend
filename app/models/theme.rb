@@ -36,7 +36,7 @@ class Theme < ApplicationRecord
   validate :hex_colors
 
   scope :available_to, ->(user) {
-    school_ids = user.sport_memberships.active.select(:school_id)
+    school_ids = user.season_memberships.active.joins(season: :sport).select("sports.school_id")
     where(scope: :system)
       .or(where(scope: :school, school_id: school_ids))
       .where(active: true)

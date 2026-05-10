@@ -10,6 +10,7 @@ class Message < ApplicationRecord
           class_name: "MessageThread",
           foreign_key: :parent_message_id
   has_many :reactions, dependent: :destroy
+  has_many :message_translations, dependent: :destroy
 
   validates :content, presence: true
   validates :channel, :sender, presence: true

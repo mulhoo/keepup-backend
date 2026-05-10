@@ -1,17 +1,16 @@
 FactoryBot.define do
   factory :sport do
     school
-    name       { Faker::Sport.sport }
+    sport_template
     sport_type { "team" }
-    season     { "2025-26" }
+    gender     { :coed }
     status     { :pending }
 
-    trait :active do
-      status { :active }
-    end
+    trait :boys   do; gender { :boys  }; end
+    trait :girls  do; gender { :girls }; end
+    trait :coed   do; gender { :coed  }; end
 
-    trait :inactive do
-      status { :inactive }
-    end
+    trait :active   do; status { :active   }; end
+    trait :inactive do; status { :inactive }; end
   end
 end

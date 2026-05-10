@@ -6,9 +6,10 @@ module NotificationChain
   #   school_admin                 -> district_admin of accessor's district
   #   district_admin               -> dpa_contact of accessor's district
   #   dpa_contact                  -> nil (top of chain, no one above)
-  def self.supervisor_for(accessor, sport: nil)
-    role = accessor.sport_memberships.find_by(sport:)&.role if sport
-    school = accessor.sport_memberships.find_by(sport:)&.school if sport
+  def self.supervisor_for(accessor, season: nil)
+    sm     = season && accessor.season_memberships.find_by(season:)
+    role   = sm&.role
+    school = season&.school
 
     case role
     when "head_coach", "assistant_coach"

@@ -1,18 +1,16 @@
 """
 KeepUp Gemma 4 Moderation Service
 
-Exposes three endpoints called by the Rails backend:
+Exposes four endpoints called by the Rails backend:
   POST /moderate        - Reference implementation of on-device text moderation (Role 1)
   POST /analyze_access  - Behavioral anomaly detection on access log patterns (Role 2)
   POST /moderate_emoji  - Multimodal image moderation for sport emoji submissions (Role 3)
+  POST /translate       - Coach/AD content translation for multilingual families (Role 4)
 
-IMPORTANT — Role 1 privacy note:
-  Student message content is moderated ON-DEVICE by Gemma 4 E4B running in the mobile app.
-  This endpoint is the canonical reference implementation of that same logic. It is used for:
-    - Web-client message paths (non-student)
-    - Integration testing and demo purposes
-  It MUST NOT be called with student message content from the Rails backend directly.
-  Student message content never leaves the student's device for AI analysis (COPPA/FERPA).
+IMPORTANT — Role 1 & 4 privacy boundary:
+  Student message content is moderated and translated ON-DEVICE by Gemma 4 E4B running in
+  the mobile app. These endpoints are used only for coach/AD/admin-authored content where
+  server-side processing is COPPA-safe (no student message content ever sent server-side).
 """
 
 import os
@@ -133,6 +131,32 @@ class ModerateEmojiResponse(BaseModel):
     categories: list[str]
 
 
+SUPPORTED_LANGUAGES: dict[str, str] = {
+    "es":    "Spanish",
+    "zh-CN": "Mandarin Chinese (Simplified)",
+}
+
+
+class TranslateRequest(BaseModel):
+    text: str = Field(..., description="Coach/AD-authored text to translate")
+    target_language: str = Field(
+        ...,
+        description=f"BCP-47 target language code. Supported: {', '.join(SUPPORTED_LANGUAGES)}"
+    )
+    source_language: str = Field("en", description="Source language code (default: en)")
+    context: str = Field(
+        "message",
+        description="Content register hint: announcement | message. Affects tone."
+    )
+
+
+class TranslateResponse(BaseModel):
+    translated_text: str
+    source_language: str
+    target_language: str
+    language_name: str
+
+
 # ---------------------------------------------------------------------------
 # Prompt builders
 # ---------------------------------------------------------------------------
@@ -175,6 +199,18 @@ JSON schema:
   "patterns_detected": <array of short pattern description strings, empty if none>,
   "reason": <one sentence summary if anomaly_score > 0.3, else null>
 }"""
+
+TRANSLATION_SYSTEM_PROMPT = """You are a translator for KeepUp, a high school sports communication
+platform. You translate messages from coaches and athletic staff so that families who speak other
+languages can read them.
+
+Rules:
+- Output ONLY the translated text. No preamble, no explanation, no quotes around the output.
+- Preserve the original tone and formatting (line breaks, punctuation, capitalization).
+- Use clear, plain language — parents reading this may not be fluent.
+- For announcements, use slightly formal phrasing. For messages, use conversational phrasing.
+- Never add information that was not in the original.
+- If the input contains a proper noun (school name, coach name, sport name), keep it as-is."""
 
 EMOJI_MODERATION_SYSTEM_PROMPT = """You are an image content classifier for KeepUp, a sports
 communication platform used by high school students aged 14–18.
@@ -393,6 +429,61 @@ async def moderate_emoji(request: ModerateEmojiRequest) -> ModerateEmojiResponse
         score=score,
         reason=parsed.get("reason"),
         categories=parsed.get("categories", ["none"]),
+    )
+
+
+@app.post("/translate", response_model=TranslateResponse)
+async def translate_content(request: TranslateRequest) -> TranslateResponse:
+    """
+    Role 4 — Coach/AD content translation for multilingual families.
+
+    COPPA boundary: only coach, AD, and school-admin-authored content is sent here.
+    Student message translation runs on-device in the mobile app — never server-side.
+
+    Supported target languages: es (Spanish), zh-CN (Mandarin Chinese Simplified).
+    """
+    if _text_pipeline is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    if request.target_language not in SUPPORTED_LANGUAGES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported language '{request.target_language}'. "
+                   f"Supported: {', '.join(SUPPORTED_LANGUAGES)}"
+        )
+
+    language_name = SUPPORTED_LANGUAGES[request.target_language]
+    source_name   = SUPPORTED_LANGUAGES.get(request.source_language, "English")
+    register      = "formal" if request.context == "announcement" else "conversational"
+
+    user_prompt = (
+        f"Translate the following {register} {source_name} text into {language_name}.\n\n"
+        f"{request.text}"
+    )
+
+    messages = [
+        {"role": "system", "content": TRANSLATION_SYSTEM_PROMPT},
+        {"role": "user",   "content": user_prompt},
+    ]
+
+    output = _text_pipeline(
+        messages,
+        max_new_tokens=1024,
+        do_sample=False,
+        temperature=None,
+        top_p=None,
+    )
+    translated = output[0]["generated_text"][-1]["content"].strip()
+
+    if not translated:
+        logger.error(f"/translate empty output for target={request.target_language}")
+        raise HTTPException(status_code=500, detail="Model returned empty translation")
+
+    return TranslateResponse(
+        translated_text=translated,
+        source_language=request.source_language,
+        target_language=request.target_language,
+        language_name=language_name,
     )
 
 

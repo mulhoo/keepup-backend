@@ -15,9 +15,9 @@ class ChannelFeedChannel < ApplicationCable::Channel
   private
 
   def authorized_for_channel?(channel)
-    current_user.sport_memberships
+    current_user.season_memberships
                 .active
-                .exists?(sport: channel.sport) &&
+                .exists?(season: channel.season) &&
       channel.viewable_by?(current_user)
   end
 end

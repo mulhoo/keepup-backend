@@ -3,14 +3,16 @@ require "rails_helper"
 RSpec.describe ModerationNotificationJob do
   let(:school)      { create(:school) }
   let(:sport)       { create(:sport, school: school) }
+  let(:team_level)  { create(:team_level, sport: sport) }
+  let(:season)      { create(:season, sport: sport, team_level: team_level) }
   let(:head_coach)  { create(:user) }
   let(:ad_user)     { create(:user) }
   let(:student)     { create(:user) }
-  let(:channel)     { create(:channel, sport: sport) }
+  let(:channel)     { create(:channel, season: season) }
   let(:message)     { create(:message, channel: channel, sender: student, flagged: true, flag_action: "blocked") }
 
   before do
-    create(:sport_membership, user: head_coach, sport: sport, school: school, role: :head_coach)
+    create(:season_membership, :head_coach, user: head_coach, season: season)
     create(:institution_role, user: ad_user, role: :athletic_director, school: school)
   end
 

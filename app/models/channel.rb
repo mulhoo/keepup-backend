@@ -1,5 +1,5 @@
 class Channel < ApplicationRecord
-  belongs_to :sport
+  belongs_to :season
   belongs_to :created_by, class_name: "User"
 
   has_many :channel_memberships, dependent: :destroy
@@ -10,7 +10,7 @@ class Channel < ApplicationRecord
   enum :channel_type, { conversation: 0, broadcast: 1, athletes_only: 2, coaches_only: 3 }
 
   validates :name, :channel_type, presence: true
-  validates :sport, :created_by, presence: true
+  validates :season, :created_by, presence: true
 
   scope :active, -> { where(active: true, deleted_at: nil) }
   scope :system_generated, -> { where(system_generated: true) }
@@ -27,11 +27,11 @@ class Channel < ApplicationRecord
   end
 
   def viewable_by?(user)
-    membership = user.sport_memberships.active.find_by(sport:)
+    membership = user.season_memberships.active.find_by(season:)
     return false unless membership
 
     case channel_type
-    when "coaches_only" then membership.role.in?(%w[head_coach assistant_coach])
+    when "coaches_only"  then membership.role.in?(%w[head_coach assistant_coach])
     when "athletes_only" then membership.role.in?(%w[student head_coach assistant_coach])
     else true
     end

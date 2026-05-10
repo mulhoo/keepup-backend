@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :dm_conversation do
-    sport
+    season
     # participant_a must have the lower ID — use DmConversation.between in specs
     # when you need the ordering enforced automatically.
     participant_a { association :user }

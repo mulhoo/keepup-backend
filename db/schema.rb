@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_10_050000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -47,6 +47,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
     t.index ["notified_user_id"], name: "index_access_notifications_on_notified_user_id"
   end
 
+  create_table "activities", force: :cascade do |t|
+    t.integer "event_type", null: false
+    t.bigint "actor_id"
+    t.string "subject_type"
+    t.bigint "subject_id"
+    t.bigint "season_id"
+    t.bigint "school_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_activities_on_actor_id"
+    t.index ["event_type"], name: "index_activities_on_event_type"
+    t.index ["school_id", "occurred_at"], name: "index_activities_on_school_id_and_occurred_at"
+    t.index ["school_id"], name: "index_activities_on_school_id"
+    t.index ["season_id", "occurred_at"], name: "index_activities_on_season_id_and_occurred_at"
+    t.index ["season_id"], name: "index_activities_on_season_id"
+    t.index ["subject_type", "subject_id"], name: "index_activities_on_subject"
+  end
+
   create_table "channel_memberships", force: :cascade do |t|
     t.bigint "channel_id", null: false
     t.bigint "user_id", null: false
@@ -59,7 +79,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
   end
 
   create_table "channels", force: :cascade do |t|
-    t.bigint "sport_id", null: false
     t.bigint "created_by_id", null: false
     t.string "name", null: false
     t.text "description"
@@ -71,9 +90,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "system_generated", default: false, null: false
+    t.bigint "season_id", null: false
     t.index ["created_by_id"], name: "index_channels_on_created_by_id"
     t.index ["deleted_at"], name: "index_channels_on_deleted_at"
-    t.index ["sport_id"], name: "index_channels_on_sport_id"
+    t.index ["season_id"], name: "index_channels_on_season_id"
   end
 
   create_table "coop_authorizations", force: :cascade do |t|
@@ -136,13 +156,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
   create_table "dm_conversations", force: :cascade do |t|
     t.bigint "participant_a_id", null: false
     t.bigint "participant_b_id", null: false
-    t.bigint "sport_id", null: false
     t.datetime "last_message_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["participant_a_id", "participant_b_id", "sport_id"], name: "index_dm_conversations_unique", unique: true
+    t.bigint "season_id", null: false
+    t.index ["participant_a_id", "participant_b_id", "season_id"], name: "index_dm_conversations_unique", unique: true
     t.index ["participant_b_id"], name: "index_dm_conversations_on_participant_b_id"
-    t.index ["sport_id"], name: "index_dm_conversations_on_sport_id"
+    t.index ["season_id"], name: "index_dm_conversations_on_season_id"
   end
 
   create_table "institution_roles", force: :cascade do |t|
@@ -187,6 +207,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
     t.datetime "updated_at", null: false
     t.index ["channel_id"], name: "index_message_threads_on_channel_id"
     t.index ["parent_message_id"], name: "index_message_threads_on_parent_message_id", unique: true
+  end
+
+  create_table "message_translations", force: :cascade do |t|
+    t.bigint "message_id", null: false
+    t.string "language", null: false
+    t.text "translated_text", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["message_id", "language"], name: "index_message_translations_on_message_id_and_language", unique: true
+    t.index ["message_id"], name: "index_message_translations_on_message_id"
   end
 
   create_table "messages", force: :cascade do |t|
@@ -293,6 +323,55 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
     t.index ["district_id"], name: "index_schools_on_district_id"
   end
 
+  create_table "season_memberships", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "season_id", null: false
+    t.integer "role", null: false
+    t.boolean "is_captain", default: false, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "joined_at"
+    t.datetime "removed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["season_id"], name: "index_season_memberships_on_season_id"
+    t.index ["user_id", "season_id"], name: "index_season_memberships_on_user_id_and_season_id", unique: true
+    t.index ["user_id"], name: "index_season_memberships_on_user_id"
+  end
+
+  create_table "seasons", force: :cascade do |t|
+    t.bigint "sport_id", null: false
+    t.string "name", null: false
+    t.string "school_year", null: false
+    t.date "starts_at"
+    t.date "ends_at"
+    t.integer "status", default: 0, null: false
+    t.datetime "archived_at"
+    t.bigint "archived_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "team_level_id"
+    t.index ["archived_by_id"], name: "index_seasons_on_archived_by_id"
+    t.index ["sport_id"], name: "index_seasons_on_sport_id"
+    t.index ["team_level_id", "school_year"], name: "index_seasons_on_team_level_id_and_school_year", unique: true
+    t.index ["team_level_id"], name: "index_seasons_on_team_level_id"
+  end
+
+  create_table "sport_commissionerships", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "sport_template_id", null: false
+    t.bigint "district_id", null: false
+    t.bigint "assigned_by_id"
+    t.integer "status", default: 0, null: false
+    t.datetime "assigned_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assigned_by_id"], name: "index_sport_commissionerships_on_assigned_by_id"
+    t.index ["district_id"], name: "index_sport_commissionerships_on_district_id"
+    t.index ["sport_template_id"], name: "index_sport_commissionerships_on_sport_template_id"
+    t.index ["user_id", "sport_template_id", "district_id"], name: "index_sport_commissionerships_unique", unique: true
+    t.index ["user_id"], name: "index_sport_commissionerships_on_user_id"
+  end
+
   create_table "sport_emojis", force: :cascade do |t|
     t.bigint "sport_id", null: false
     t.bigint "requested_by_id", null: false
@@ -315,32 +394,40 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
     t.index ["status"], name: "index_sport_emojis_on_status"
   end
 
-  create_table "sport_memberships", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.bigint "sport_id", null: false
-    t.bigint "school_id", null: false
-    t.integer "role", null: false
+  create_table "sport_templates", force: :cascade do |t|
+    t.bigint "district_id", null: false
+    t.string "name", null: false
+    t.integer "athletic_season", default: 0, null: false
+    t.integer "gender_config", default: 0, null: false
     t.boolean "active", default: true, null: false
-    t.date "joined_date"
-    t.date "left_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.boolean "is_captain", default: false, null: false
-    t.index ["school_id"], name: "index_sport_memberships_on_school_id"
-    t.index ["sport_id", "role"], name: "index_sport_memberships_on_sport_id_and_role"
-    t.index ["sport_id"], name: "index_sport_memberships_on_sport_id"
-    t.index ["user_id", "sport_id"], name: "index_sport_memberships_on_user_id_and_sport_id", unique: true
+    t.index ["district_id", "name"], name: "index_sport_templates_on_district_id_and_name", unique: true
+    t.index ["district_id"], name: "index_sport_templates_on_district_id"
   end
 
   create_table "sports", force: :cascade do |t|
-    t.string "name", null: false
     t.string "sport_type"
-    t.string "season"
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "school_id", null: false
+    t.bigint "sport_template_id"
+    t.integer "gender", default: 1, null: false
     t.index ["school_id"], name: "index_sports_on_school_id"
+    t.index ["sport_template_id", "school_id", "gender"], name: "index_sports_on_sport_template_id_and_school_id_and_gender", unique: true
+    t.index ["sport_template_id"], name: "index_sports_on_sport_template_id"
+  end
+
+  create_table "team_levels", force: :cascade do |t|
+    t.bigint "sport_id", null: false
+    t.string "name", null: false
+    t.integer "display_order", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["sport_id", "name"], name: "index_team_levels_on_sport_id_and_name", unique: true
+    t.index ["sport_id"], name: "index_team_levels_on_sport_id"
   end
 
   create_table "themes", force: :cascade do |t|
@@ -391,6 +478,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "theme_id"
+    t.string "preferred_language"
     t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["invitation_token"], name: "index_users_on_invitation_token", unique: true
@@ -403,9 +491,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
   add_foreign_key "access_logs", "users", column: "accessor_id"
   add_foreign_key "access_notifications", "access_logs"
   add_foreign_key "access_notifications", "users", column: "notified_user_id"
+  add_foreign_key "activities", "schools"
+  add_foreign_key "activities", "seasons"
+  add_foreign_key "activities", "users", column: "actor_id"
   add_foreign_key "channel_memberships", "channels"
   add_foreign_key "channel_memberships", "users"
-  add_foreign_key "channels", "sports"
+  add_foreign_key "channels", "seasons"
   add_foreign_key "channels", "users", column: "created_by_id"
   add_foreign_key "coop_authorizations", "schools"
   add_foreign_key "coop_authorizations", "sports"
@@ -414,7 +505,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
   add_foreign_key "direct_messages", "dm_conversations"
   add_foreign_key "direct_messages", "users", column: "flag_reviewed_by_id"
   add_foreign_key "direct_messages", "users", column: "sender_id"
-  add_foreign_key "dm_conversations", "sports"
+  add_foreign_key "dm_conversations", "seasons"
   add_foreign_key "dm_conversations", "users", column: "participant_a_id"
   add_foreign_key "dm_conversations", "users", column: "participant_b_id"
   add_foreign_key "institution_roles", "districts"
@@ -426,6 +517,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
   add_foreign_key "message_flags", "users", column: "resolved_by_id"
   add_foreign_key "message_flags", "users", column: "reviewed_by_id"
   add_foreign_key "message_threads", "channels"
+  add_foreign_key "message_translations", "messages"
   add_foreign_key "messages", "channels"
   add_foreign_key "messages", "message_threads"
   add_foreign_key "messages", "users", column: "deleted_by_id"
@@ -442,14 +534,23 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_09_221851) do
   add_foreign_key "reactions", "sport_emojis"
   add_foreign_key "reactions", "users"
   add_foreign_key "schools", "districts"
+  add_foreign_key "season_memberships", "seasons"
+  add_foreign_key "season_memberships", "users"
+  add_foreign_key "seasons", "sports"
+  add_foreign_key "seasons", "team_levels"
+  add_foreign_key "seasons", "users", column: "archived_by_id"
+  add_foreign_key "sport_commissionerships", "districts"
+  add_foreign_key "sport_commissionerships", "sport_templates"
+  add_foreign_key "sport_commissionerships", "users"
+  add_foreign_key "sport_commissionerships", "users", column: "assigned_by_id"
   add_foreign_key "sport_emojis", "sports"
   add_foreign_key "sport_emojis", "users", column: "appeal_reviewed_by_id"
   add_foreign_key "sport_emojis", "users", column: "requested_by_id"
   add_foreign_key "sport_emojis", "users", column: "reviewed_by_id"
-  add_foreign_key "sport_memberships", "schools"
-  add_foreign_key "sport_memberships", "sports"
-  add_foreign_key "sport_memberships", "users"
+  add_foreign_key "sport_templates", "districts"
   add_foreign_key "sports", "schools"
+  add_foreign_key "sports", "sport_templates"
+  add_foreign_key "team_levels", "sports"
   add_foreign_key "themes", "schools"
   add_foreign_key "themes", "users", column: "created_by_id"
   add_foreign_key "users", "themes"

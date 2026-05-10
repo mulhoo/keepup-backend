@@ -4,10 +4,11 @@ class InstitutionRole < ApplicationRecord
   belongs_to :school, optional: true
 
   enum :role, {
-    district_admin:   0,
-    school_admin:     1,
+    district_admin:    0,
+    school_admin:      1,
     athletic_director: 2,
-    dpa_contact:      3
+    dpa_contact:       3,
+    super_admin:       4
   }
 
   validates :role, presence: true
@@ -15,11 +16,13 @@ class InstitutionRole < ApplicationRecord
 
   scope :active,       -> { all }
   scope :for_district, ->(district) { where(district:) }
-  scope :for_school, ->(school)     { where(school:) }
+  scope :for_school,   ->(school)   { where(school:) }
 
   private
 
   def scope_presence
+    return if super_admin?
+
     if district_id.present? && school_id.present?
       errors.add(:base, "cannot be scoped to both a district and a school")
     elsif district_id.blank? && school_id.blank?

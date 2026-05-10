@@ -4,12 +4,13 @@ module Demo
     before_action :require_demo_mode
 
     DEMO_ACCOUNTS = {
-      "district_admin"    => "admin@lwsd.org",
-      "athletic_director" => "ad@lwhs.org",
-      "head_coach"        => "coach.swim@lwhs.org",
-      "assistant_coach"   => "asst.swim@lwhs.org",
-      "student_captain"   => "captain@lwhs.student.org",
-      "student"           => "student1@lwhs.student.org",
+      "district_admin"    => "admin@hsd.edu",
+      "school_admin"      => "schooladmin@ahs.edu",
+      "athletic_director" => "ad@ahs.edu",
+      "head_coach"        => "coach.swim@ahs.edu",
+      "assistant_coach"   => "asst.swim@ahs.edu",
+      "student_captain"   => "captain@ahs.student.edu",
+      "student"           => "student1@ahs.student.edu",
       "parent"            => "parent1@example.com"
     }.freeze
 

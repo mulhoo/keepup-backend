@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :channel do
-    sport
+    season
     created_by      { association :user }
     name            { Faker::Lorem.unique.word.capitalize }
     channel_type    { :conversation }

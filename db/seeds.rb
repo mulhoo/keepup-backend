@@ -1,4 +1,4 @@
-# Seed data for local development — LWSD (Lake Washington School District) scenario.
+# Seed data for local development — HSD (Hajos School District) demo scenario.
 # Run with: bin/rails db:seed
 # Safe to re-run: all records use find_or_create_by! on natural keys.
 
@@ -6,8 +6,8 @@ puts "Seeding KeepUp development data..."
 
 # ── District ──────────────────────────────────────────────────────────────────
 
-lwsd = District.find_or_create_by!(name: "Lake Washington School District") do |d|
-  d.city    = "Kirkland"
+hsd = District.find_or_create_by!(name: "Hajos School District") do |d|
+  d.city    = "Riverside"
   d.state   = "WA"
   d.country = "US"
   d.active  = true
@@ -15,20 +15,20 @@ end
 
 # ── Schools ───────────────────────────────────────────────────────────────────
 
-lwhs = School.find_or_create_by!(name: "Lake Washington High School", district: lwsd) do |s|
-  s.city   = "Kirkland"
+ahs = School.find_or_create_by!(name: "Alfred High School", district: hsd) do |s|
+  s.city   = "Riverside"
   s.state  = "WA"
   s.active = true
 end
 
-ehs = School.find_or_create_by!(name: "Eastlake High School", district: lwsd) do |s|
-  s.city   = "Sammamish"
+bhs = School.find_or_create_by!(name: "Baldwin High School", district: hsd) do |s|
+  s.city   = "Riverside"
   s.state  = "WA"
   s.active = true
 end
 
-jhs = School.find_or_create_by!(name: "Juanita High School", district: lwsd) do |s|
-  s.city   = "Kirkland"
+chs = School.find_or_create_by!(name: "Crest High School", district: hsd) do |s|
+  s.city   = "Riverside"
   s.state  = "WA"
   s.active = true
 end
@@ -187,74 +187,107 @@ end
 
 # ── Users ─────────────────────────────────────────────────────────────────────
 
-district_admin = User.find_or_create_by!(email: "admin@lwsd.org") do |u|
+district_admin = User.find_or_create_by!(email: "admin@hsd.edu") do |u|
   u.first_name = "Sandra"
   u.last_name  = "Okafor"
   u.password   = "password123"
 end
 
-lw_ad = User.find_or_create_by!(email: "ad@lwhs.org") do |u|
+ahs_school_admin = User.find_or_create_by!(email: "schooladmin@ahs.edu") do |u|
+  u.first_name = "Dana"
+  u.last_name  = "Marsh"
+  u.password   = "password123"
+end
+
+super_admin = User.find_or_create_by!(email: "superadmin@keepup.app") do |u|
+  u.first_name = "Olivia"
+  u.last_name  = "Koster"
+  u.password   = "password123"
+end
+
+swim_commissioner = User.find_or_create_by!(email: "jeff.swim@kingcounty.gov") do |u|
+  u.first_name = "Jeff"
+  u.last_name  = "Harmon"
+  u.password   = "password123"
+end
+
+ahs_ad = User.find_or_create_by!(email: "ad@ahs.edu") do |u|
   u.first_name = "Mike"
   u.last_name  = "Torres"
   u.password   = "password123"
 end
 
-ehs_ad = User.find_or_create_by!(email: "ad@ehs.org") do |u|
+bhs_ad = User.find_or_create_by!(email: "ad@bhs.edu") do |u|
   u.first_name = "Rachel"
   u.last_name  = "Kim"
   u.password   = "password123"
 end
 
-head_coach = User.find_or_create_by!(email: "coach.swim@lwhs.org") do |u|
+head_coach = User.find_or_create_by!(email: "coach.swim@ahs.edu") do |u|
   u.first_name = "Chris"
   u.last_name  = "Nguyen"
   u.password   = "password123"
 end
 
-asst_coach = User.find_or_create_by!(email: "asst.swim@lwhs.org") do |u|
+asst_coach = User.find_or_create_by!(email: "asst.swim@ahs.edu") do |u|
   u.first_name = "Dana"
   u.last_name  = "Patel"
   u.password   = "password123"
 end
 
-student_captain = User.find_or_create_by!(email: "captain@lwhs.student.org") do |u|
+student_captain = User.find_or_create_by!(email: "captain@ahs.student.edu") do |u|
   u.first_name = "Alex"
   u.last_name  = "Rivera"
   u.password   = "password123"
 end
 
-student_1 = User.find_or_create_by!(email: "student1@lwhs.student.org") do |u|
+student_1 = User.find_or_create_by!(email: "student1@ahs.student.edu") do |u|
   u.first_name = "Jordan"
   u.last_name  = "Lee"
   u.password   = "password123"
 end
 
-student_2 = User.find_or_create_by!(email: "student2@lwhs.student.org") do |u|
+student_2 = User.find_or_create_by!(email: "student2@bhs.student.edu") do |u|
   u.first_name = "Taylor"
   u.last_name  = "Brooks"
   u.password   = "password123"
 end
 
-parent_1 = User.find_or_create_by!(email: "parent1@example.com") do |u|
-  u.first_name = "Morgan"
+polo_coach = User.find_or_create_by!(email: "coach.polo@ahs.edu") do |u|
+  u.first_name = "Sam"
+  u.last_name  = "Rivera"
+  u.password   = "password123"
+end
+
+student_3 = User.find_or_create_by!(email: "student3@ahs.student.edu") do |u|
+  u.first_name = "Casey"
   u.last_name  = "Lee"
   u.password   = "password123"
 end
 
+parent_1 = User.find_or_create_by!(email: "parent1@example.com") do |u|
+  u.first_name         = "Morgan"
+  u.last_name          = "Lee"
+  u.password           = "password123"
+  u.preferred_language = "es"
+end
+
 # ── Institution Roles ─────────────────────────────────────────────────────────
 
-InstitutionRole.find_or_create_by!(user: district_admin, role: :district_admin, district: lwsd)
-InstitutionRole.find_or_create_by!(user: lw_ad,  role: :athletic_director, school: lwhs)
-InstitutionRole.find_or_create_by!(user: ehs_ad, role: :athletic_director, school: ehs)
+InstitutionRole.find_or_create_by!(user: super_admin,      role: :super_admin)
+InstitutionRole.find_or_create_by!(user: district_admin,   role: :district_admin,   district: hsd)
+InstitutionRole.find_or_create_by!(user: ahs_school_admin, role: :school_admin,     school: ahs)
+InstitutionRole.find_or_create_by!(user: ahs_ad,           role: :athletic_director, school: ahs)
+InstitutionRole.find_or_create_by!(user: bhs_ad,           role: :athletic_director, school: bhs)
 
 # ── School Themes ─────────────────────────────────────────────────────────────
 # ADs can set exactly one dark + one light theme for their school.
-# LWHS example: navy + gold (Kangaroos school colors)
+# AHS example: navy + gold (Hawks school colors)
 
-# LWHS Kangaroos — navy + gold school colors
-Theme.find_or_create_by!(scope: :school, school: lwhs, variant: :dark) do |t|
-  t.name                  = "Kangs Dark"
-  t.created_by            = lw_ad
+# AHS Hawks — navy + gold school colors
+Theme.find_or_create_by!(scope: :school, school: ahs, variant: :dark) do |t|
+  t.name                  = "Hawks Dark"
+  t.created_by            = ahs_ad
   t.color_background      = "#0D1520"
   t.color_surface         = "#1B2840"
   t.color_surface_variant = "#1F3050"
@@ -267,9 +300,9 @@ Theme.find_or_create_by!(scope: :school, school: lwhs, variant: :dark) do |t|
   t.color_text_on_accent  = "#0D1520"
 end
 
-Theme.find_or_create_by!(scope: :school, school: lwhs, variant: :light) do |t|
-  t.name                  = "Kangs Light"
-  t.created_by            = lw_ad
+Theme.find_or_create_by!(scope: :school, school: ahs, variant: :light) do |t|
+  t.name                  = "Hawks Light"
+  t.created_by            = ahs_ad
   t.color_background      = "#FFFEF0"
   t.color_surface         = "#FFF9C4"
   t.color_surface_variant = "#FFF3A0"
@@ -282,68 +315,171 @@ Theme.find_or_create_by!(scope: :school, school: lwhs, variant: :light) do |t|
   t.color_text_on_accent  = "#FFFFFF"
 end
 
-# ── Sports ────────────────────────────────────────────────────────────────────
+# ── Sport Templates (district-managed catalog) ────────────────────────────────
+# District admin sets which sports exist, what season they run, and whether
+# boys/girls compete separately or as a combined program.
 
-# LW Varsity Swimming — home school is LWHS, co-op with EHS
-swimming = Sport.find_or_create_by!(name: "Varsity Swimming", school: lwhs) do |s|
+swim_template = SportTemplate.find_or_create_by!(district: hsd, name: "Swimming") do |t|
+  t.athletic_season = :fall
+  t.gender_config   = :separate  # HSD runs girls and boys swimming as separate programs
+  t.active          = true
+end
+
+basket_template = SportTemplate.find_or_create_by!(district: hsd, name: "Basketball") do |t|
+  t.athletic_season = :winter
+  t.gender_config   = :separate
+  t.active          = true
+end
+
+polo_template = SportTemplate.find_or_create_by!(district: hsd, name: "Water Polo") do |t|
+  t.athletic_season = :spring
+  t.gender_config   = :separate
+  t.active          = true
+end
+
+# ── Sport Commissionerships ───────────────────────────────────────────────────
+# Jeff oversees swimming for the entire HSD district — assigned by Sophia (super admin).
+
+SportCommissionership.find_or_create_by!(user: swim_commissioner, sport_template: swim_template, district: hsd) do |sc|
+  sc.status      = :active
+  sc.assigned_by = super_admin
+  sc.assigned_at = 1.month.ago
+end
+
+# ── Sports (school-level programs) ────────────────────────────────────────────
+# Each Sport links a school to a template and specifies gender.
+# Name is derived: "Girls Swimming", "Boys Water Polo", etc.
+
+swimming = Sport.find_or_create_by!(sport_template: swim_template, school: ahs, gender: :girls) do |s|
   s.sport_type = "swimming"
-  s.season     = "2025-26"
   s.status     = :pending
 end
 
-# Standard single-school sport at LWHS
-water_polo = Sport.find_or_create_by!(name: "Water Polo", school: lwhs) do |s|
-  s.sport_type = "water_polo"
-  s.season     = "2025-26"
+# BHS Boys Swimming — Chris Nguyen is assistant coach here (same Hajos district)
+bhs_boys_swimming = Sport.find_or_create_by!(sport_template: swim_template, school: bhs, gender: :boys) do |s|
+  s.sport_type = "swimming"
   s.status     = :active
 end
 
-# ── Co-op Authorizations (swimming is shared with EHS) ───────────────────────
+water_polo = Sport.find_or_create_by!(sport_template: polo_template, school: ahs, gender: :boys) do |s|
+  s.sport_type = "water_polo"
+  s.status     = :active
+end
 
-lw_auth = CoopAuthorization.find_or_create_by!(sport: swimming, school: lwhs) do |ca|
-  ca.athletic_director = lw_ad
+# ── Team Levels (AD-configurable per sport) ───────────────────────────────────
+# ADs add and remove levels; each level gets its own season, roster, and channels.
+
+varsity_swim = TeamLevel.find_or_create_by!(sport: swimming, name: "Varsity") { |l| l.display_order = 0 }
+jv_swim      = TeamLevel.find_or_create_by!(sport: swimming, name: "JV")      { |l| l.display_order = 1 }
+c_swim       = TeamLevel.find_or_create_by!(sport: swimming, name: "C Team")  { |l| l.display_order = 2 }
+
+varsity_bhs_swim = TeamLevel.find_or_create_by!(sport: bhs_boys_swimming, name: "Varsity") { |l| l.display_order = 0 }
+jv_bhs_swim      = TeamLevel.find_or_create_by!(sport: bhs_boys_swimming, name: "JV")      { |l| l.display_order = 1 }
+
+varsity_polo = TeamLevel.find_or_create_by!(sport: water_polo, name: "Varsity") { |l| l.display_order = 0 }
+jv_polo      = TeamLevel.find_or_create_by!(sport: water_polo, name: "JV")      { |l| l.display_order = 1 }
+
+# ── Co-op Authorizations (swimming is shared with BHS) ───────────────────────
+
+ahs_auth = CoopAuthorization.find_or_create_by!(sport: swimming, school: ahs) do |ca|
+  ca.athletic_director = ahs_ad
   ca.status            = :approved
   ca.approved_at       = 1.week.ago
 end
 
-ehs_auth = CoopAuthorization.find_or_create_by!(sport: swimming, school: ehs) do |ca|
-  ca.athletic_director = ehs_ad
+bhs_auth = CoopAuthorization.find_or_create_by!(sport: swimming, school: bhs) do |ca|
+  ca.athletic_director = bhs_ad
   ca.status            = :approved
   ca.approved_at       = 1.week.ago
 end
 
 swimming.activate_if_ready!
 
-# ── Sport Memberships ─────────────────────────────────────────────────────────
+# ── Seasons ───────────────────────────────────────────────────────────────────
+# One season per team level per school year.
 
-SportMembership.find_or_create_by!(user: head_coach,       sport: swimming, school: lwhs) { |sm| sm.role = :head_coach }
-SportMembership.find_or_create_by!(user: asst_coach,       sport: swimming, school: lwhs) { |sm| sm.role = :assistant_coach }
-SportMembership.find_or_create_by!(user: student_captain,  sport: swimming, school: lwhs) { |sm| sm.role = :student; sm.is_captain = true }
-SportMembership.find_or_create_by!(user: student_1,        sport: swimming, school: lwhs) { |sm| sm.role = :student }
-SportMembership.find_or_create_by!(user: student_2,        sport: swimming, school: ehs)  { |sm| sm.role = :student }
-SportMembership.find_or_create_by!(user: parent_1,         sport: swimming, school: lwhs) { |sm| sm.role = :parent }
+swim_season = Season.find_or_create_by!(team_level: varsity_swim, school_year: "2025-26") do |s|
+  s.sport     = swimming
+  s.name      = "Swimming 2025-26"
+  s.starts_at = Date.new(2025, 8, 18)
+  s.ends_at   = Date.new(2025, 11, 15)
+  s.status    = :active
+end
+
+bhs_swim_coach = User.find_or_create_by!(email: "coach.swim@bhs.edu") do |u|
+  u.first_name = "Tony"
+  u.last_name  = "Kim"
+  u.password   = "password123"
+end
+
+bhs_swim_student_1 = User.find_or_create_by!(email: "marcus.tran@bhs.student.edu") do |u|
+  u.first_name = "Marcus"
+  u.last_name  = "Tran"
+  u.password   = "password123"
+end
+
+bhs_swim_student_2 = User.find_or_create_by!(email: "leo.svensson@bhs.student.edu") do |u|
+  u.first_name = "Leo"
+  u.last_name  = "Svensson"
+  u.password   = "password123"
+end
+
+bhs_swim_season = Season.find_or_create_by!(team_level: varsity_bhs_swim, school_year: "2025-26") do |s|
+  s.sport     = bhs_boys_swimming
+  s.name      = "Boys Swimming BHS 2025-26"
+  s.starts_at = Date.new(2025, 8, 18)
+  s.ends_at   = Date.new(2025, 11, 15)
+  s.status    = :active
+end
+
+SeasonMembership.find_or_create_by!(user: bhs_swim_coach, season: bhs_swim_season) { |sm| sm.role = :head_coach }
+SeasonMembership.find_or_create_by!(user: head_coach,     season: bhs_swim_season) { |sm| sm.role = :assistant_coach }
+SeasonMembership.find_or_create_by!(user: bhs_swim_student_1, season: bhs_swim_season) { |sm| sm.role = :student; sm.is_captain = true }
+SeasonMembership.find_or_create_by!(user: bhs_swim_student_2, season: bhs_swim_season) { |sm| sm.role = :student }
+
+polo_season = Season.find_or_create_by!(team_level: varsity_polo, school_year: "2025-26") do |s|
+  s.sport     = water_polo
+  s.name      = "Water Polo 2025-26"
+  s.starts_at = Date.new(2026, 3, 2)
+  s.ends_at   = Date.new(2026, 5, 30)
+  s.status    = :active
+end
+
+# ── Season Memberships ────────────────────────────────────────────────────────
+
+SeasonMembership.find_or_create_by!(user: head_coach,      season: swim_season) { |sm| sm.role = :head_coach }
+SeasonMembership.find_or_create_by!(user: asst_coach,      season: swim_season) { |sm| sm.role = :assistant_coach }
+SeasonMembership.find_or_create_by!(user: student_captain, season: swim_season) { |sm| sm.role = :student; sm.is_captain = true }
+SeasonMembership.find_or_create_by!(user: student_1,       season: swim_season) { |sm| sm.role = :student }
+SeasonMembership.find_or_create_by!(user: student_2,       season: swim_season) { |sm| sm.role = :student }
+SeasonMembership.find_or_create_by!(user: parent_1,        season: swim_season) { |sm| sm.role = :parent }
+
+SeasonMembership.find_or_create_by!(user: polo_coach, season: polo_season) { |sm| sm.role = :head_coach }
+SeasonMembership.find_or_create_by!(user: student_3,  season: polo_season) { |sm| sm.role = :student }
+SeasonMembership.find_or_create_by!(user: parent_1,   season: polo_season) { |sm| sm.role = :parent }
 
 # ── Parent-Student Relationship ───────────────────────────────────────────────
 
 ParentStudentRelationship.find_or_create_by!(parent: parent_1, student: student_1)
+ParentStudentRelationship.find_or_create_by!(parent: parent_1, student: student_3)
 
 # ── Default Channels ──────────────────────────────────────────────────────────
 
-general = Channel.find_or_create_by!(sport: swimming, name: "general") do |c|
-  c.created_by      = head_coach
-  c.channel_type    = :conversation
+general = Channel.find_or_create_by!(season: swim_season, name: "general") do |c|
+  c.created_by       = head_coach
+  c.channel_type     = :conversation
   c.system_generated = true
 end
 
-announcements = Channel.find_or_create_by!(sport: swimming, name: "announcements") do |c|
-  c.created_by      = head_coach
-  c.channel_type    = :broadcast
+announcements = Channel.find_or_create_by!(season: swim_season, name: "announcements") do |c|
+  c.created_by       = head_coach
+  c.channel_type     = :broadcast
   c.system_generated = true
 end
 
-athletes_only = Channel.find_or_create_by!(sport: swimming, name: "athletes-only") do |c|
-  c.created_by      = head_coach
-  c.channel_type    = :athletes_only
+athletes_only = Channel.find_or_create_by!(season: swim_season, name: "athletes-only") do |c|
+  c.created_by       = head_coach
+  c.channel_type     = :athletes_only
   c.system_generated = true
 end
 
@@ -373,7 +509,7 @@ Message.find_or_create_by!(channel: announcements, sender: head_coach,
   content: "Reminder: all athletes need updated physical forms submitted to the front office before Friday. No form = no practice.")
 
 Message.find_or_create_by!(channel: announcements, sender: asst_coach,
-  content: "Meet schedule for November is posted on the school athletics page. First away meet is Nov 14 @ Eastlake — bus departs at 3:30pm sharp.")
+  content: "Meet schedule for November is posted on the school athletics page. First away meet is Nov 14 @ Baldwin — bus departs at 3:30pm sharp.")
 
 # ── General channel ───────────────────────────────────────────────────────────
 
@@ -381,10 +517,10 @@ msg_general_1 = Message.find_or_create_by!(channel: general, sender: student_cap
   content: "Can't wait — see everyone Monday! Who's been training over the summer?")
 
 msg_general_2 = Message.find_or_create_by!(channel: general, sender: student_1,
-  content: "Been doing open water swims at Juanita Beach. Feeling ready 🌊")
+  content: "Been doing open water swims at Riverside Lake. Feeling ready 🌊")
 
 Message.find_or_create_by!(channel: general, sender: student_2,
-  content: "Same! Anyone need a ride Monday? I have room for 2 more from the EHS side.")
+  content: "Same! Anyone need a ride Monday? I have room for 2 more from the BHS side.")
 
 Message.find_or_create_by!(channel: general, sender: asst_coach,
   content: "Love the energy. See you all at 6am — don't be late, we're starting dry-land immediately.")
@@ -400,7 +536,7 @@ Message.find_or_create_by!(channel: general, sender: head_coach,
 # Delivers to the channel but coach sees a review notification.
 
 msg_questionable = Message.find_or_create_by!(channel: general, sender: student_1,
-  content: "Eastlake better watch out, I'm going to absolutely destroy their relays 😤") do |m|
+  content: "Baldwin better watch out, I'm going to absolutely destroy their relays 😤") do |m|
   m.flagged          = true
   m.moderation_score = 0.52
   m.flag_reason      = "Potentially aggressive language targeting another school's athletes"
@@ -411,7 +547,7 @@ end
 # Gemma scored this 0.88. Blocked entirely. Coach + AD notified.
 
 msg_severe = Message.find_or_create_by!(channel: general, sender: student_1,
-  content: "I swear if Coach benches me for the Eastlake meet I'm going to lose it on him") do |m|
+  content: "I swear if Coach benches me for the Baldwin meet I'm going to lose it on him") do |m|
   m.flagged          = true
   m.moderation_score = 0.88
   m.flag_reason      = "Implicit threat directed at a coach"
@@ -431,7 +567,7 @@ Message.find_or_create_by!(channel: athletes_only, sender: student_captain,
 
 # ── Coaches-only channel ──────────────────────────────────────────────────────
 
-coaches_only = Channel.find_or_create_by!(sport: swimming, name: "coaches") do |c|
+coaches_only = Channel.find_or_create_by!(season: swim_season, name: "coaches") do |c|
   c.created_by       = head_coach
   c.channel_type     = :coaches_only
   c.system_generated = true
@@ -444,7 +580,7 @@ Message.find_or_create_by!(channel: coaches_only, sender: head_coach,
   content: "Dana — I flagged Jordan's message in general for review. Can you keep an eye on that situation this week?")
 
 Message.find_or_create_by!(channel: coaches_only, sender: asst_coach,
-  content: "On it. I think there's some tension between Jordan and a few of the EHS kids. Will check in before Wednesday.")
+  content: "On it. I think there's some tension between Jordan and a few of the BHS kids. Will check in before Wednesday.")
 
 # ── Reactions ─────────────────────────────────────────────────────────────────
 
@@ -457,7 +593,7 @@ Reaction.find_or_create_by!(message: msg_general_2, user: student_2,       emoji
 # ── DM Conversations ──────────────────────────────────────────────────────────
 
 # Coach ↔ Captain
-dm_coach_captain = DmConversation.between(head_coach, student_captain, swimming)
+dm_coach_captain = DmConversation.between(head_coach, student_captain, swim_season)
 DirectMessage.find_or_create_by!(dm_conversation: dm_coach_captain, sender: head_coach,
   content: "Hey Alex — great leadership at tryouts. I'm going to lean on you a lot this season.")
 DirectMessage.find_or_create_by!(dm_conversation: dm_coach_captain, sender: student_captain,
@@ -466,16 +602,16 @@ DirectMessage.find_or_create_by!(dm_conversation: dm_coach_captain, sender: head
   content: "I've noticed it too. Coach Patel and I are keeping an eye on it. Thanks for flagging.")
 
 # Coach ↔ Student 1 (Jordan)
-dm_coach_jordan = DmConversation.between(head_coach, student_1, swimming)
+dm_coach_jordan = DmConversation.between(head_coach, student_1, swim_season)
 DirectMessage.find_or_create_by!(dm_conversation: dm_coach_jordan, sender: head_coach,
   content: "Jordan — checking in. How are you feeling about the season?")
 DirectMessage.find_or_create_by!(dm_conversation: dm_coach_jordan, sender: student_1,
-  content: "Honestly kind of stressed. Trying to get my times down before Eastlake.")
+  content: "Honestly kind of stressed. Trying to get my times down before Baldwin.")
 DirectMessage.find_or_create_by!(dm_conversation: dm_coach_jordan, sender: head_coach,
   content: "That's normal. Let's talk after practice Wednesday — I have some thoughts on your pacing strategy.")
 
 # Parent ↔ Coach
-dm_parent_coach = DmConversation.between(parent_1, head_coach, swimming)
+dm_parent_coach = DmConversation.between(parent_1, head_coach, swim_season)
 DirectMessage.find_or_create_by!(dm_conversation: dm_parent_coach, sender: parent_1,
   content: "Hi Coach Nguyen — Morgan here, Jordan's parent. Just wanted to introduce myself and say thank you for the welcome message.")
 DirectMessage.find_or_create_by!(dm_conversation: dm_parent_coach, sender: head_coach,
@@ -501,11 +637,47 @@ ModerationNotification.find_or_create_by!(
 )
 
 ModerationNotification.find_or_create_by!(
-  recipient: lw_ad,
+  recipient: ahs_ad,
   message: msg_severe,
   notification_type: :severe_alert,
   recipient_role: :athletic_director
 )
+
+# ── Activity Feed Records ─────────────────────────────────────────────────────
+# Message activities are normally written by ModerationNotificationJob (async).
+# We create them directly here so the demo feed is populated on first seed.
+
+Activity.find_or_create_by!(subject_type: "Message", subject_id: msg_questionable.id) do |a|
+  a.event_type  = :message_flagged
+  a.actor       = student_1
+  a.season      = swim_season
+  a.school      = ahs
+  a.occurred_at = 2.days.ago
+  a.metadata    = {
+    tier:        "questionable",
+    flag_action: "held",
+    flag_reason: msg_questionable.flag_reason,
+    sport:       swimming.name,
+    season:      swim_season.name,
+    channel:     general.name
+  }
+end
+
+Activity.find_or_create_by!(subject_type: "Message", subject_id: msg_severe.id) do |a|
+  a.event_type  = :message_flagged
+  a.actor       = student_1
+  a.season      = swim_season
+  a.school      = ahs
+  a.occurred_at = 1.day.ago
+  a.metadata    = {
+    tier:        "severe",
+    flag_action: "blocked",
+    flag_reason: msg_severe.flag_reason,
+    sport:       swimming.name,
+    season:      swim_season.name,
+    channel:     general.name
+  }
+end
 
 # ── Access Logs — demonstrates audit trail + anomaly detection ────────────────
 # Head coach accessed Jordan's DM history multiple times in a short window.
@@ -549,19 +721,20 @@ SportEmoji.find_or_create_by!(sport: swimming, name: ":splash_rage:") do |e|
 end
 
 # Approved — available for reactions
-SportEmoji.find_or_create_by!(sport: swimming, name: ":kangaroo:") do |e|
+SportEmoji.find_or_create_by!(sport: swimming, name: ":hawk:") do |e|
   e.requested_by = student_captain
-  e.image_url    = "https://placehold.co/128x128/1B2F5B/FFD700?text=🦘"
+  e.image_url    = "https://placehold.co/128x128/1B2F5B/FFD700?text=🦅"
   e.status       = :approved
   e.reviewed_by  = head_coach
   e.reviewed_at  = 1.week.ago
 end
 
-puts "Done! Seeded LWSD scenario:"
+puts "Done! Seeded HSD scenario:"
 puts "  District:  #{District.count}"
 puts "  Schools:   #{School.count}"
 puts "  Users:     #{User.count}"
 puts "  Sports:    #{Sport.count}"
+puts "  Seasons:   #{Season.count}"
 puts "  Channels:  #{Channel.count}"
 puts "  Messages:  #{Message.count}"
 puts "  Themes:    #{Theme.count} (#{Theme.system.count} system, #{Theme.school.count} school)"

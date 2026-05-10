@@ -1,10 +1,9 @@
 FactoryBot.define do
-  factory :sport_membership do
+  factory :season_membership do
     user
-    sport
-    school { sport.school }
+    season
     role   { :student }
-    active { true }
+    status { :active }
 
     trait :head_coach do
       role { :head_coach }

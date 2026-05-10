@@ -13,7 +13,7 @@ RSpec.describe User, type: :model do
 
   describe "associations" do
     it { is_expected.to have_many(:institution_roles).dependent(:destroy) }
-    it { is_expected.to have_many(:sport_memberships).dependent(:destroy) }
+    it { is_expected.to have_many(:season_memberships).dependent(:destroy) }
     it { is_expected.to have_many(:channel_memberships).dependent(:destroy) }
     it { is_expected.to have_many(:reactions).dependent(:destroy) }
   end
@@ -41,23 +41,23 @@ RSpec.describe User, type: :model do
     end
   end
 
-  describe "#coach_of?" do
-    let(:sport) { create(:sport) }
-    let(:user)  { create(:user) }
+  describe "#coach_of_season?" do
+    let(:season) { create(:season) }
+    let(:user)   { create(:user) }
 
     it "returns true for head coaches" do
-      create(:sport_membership, :head_coach, user: user, sport: sport)
-      expect(user.coach_of?(sport)).to be true
+      create(:season_membership, :head_coach, user: user, season: season)
+      expect(user.coach_of_season?(season)).to be true
     end
 
     it "returns true for assistant coaches" do
-      create(:sport_membership, :assistant_coach, user: user, sport: sport)
-      expect(user.coach_of?(sport)).to be true
+      create(:season_membership, :assistant_coach, user: user, season: season)
+      expect(user.coach_of_season?(season)).to be true
     end
 
     it "returns false for students" do
-      create(:sport_membership, :student, user: user, sport: sport)
-      expect(user.coach_of?(sport)).to be false
+      create(:season_membership, :student, user: user, season: season)
+      expect(user.coach_of_season?(season)).to be false
     end
   end
 end

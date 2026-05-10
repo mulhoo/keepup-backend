@@ -10,15 +10,15 @@ class ParentStudentRelationship < ApplicationRecord
 
   def parent_is_parent_role
     return unless parent
-    unless parent.sport_memberships.parent.exists?
-      errors.add(:parent, "must have a parent sport membership")
+    unless parent.season_memberships.parent.exists?
+      errors.add(:parent, "must have a parent season membership")
     end
   end
 
   def student_is_student_role
     return unless student
-    unless student.sport_memberships.student.exists?
-      errors.add(:student, "must have a student sport membership")
+    unless student.season_memberships.student.exists?
+      errors.add(:student, "must have a student season membership")
     end
   end
 end

@@ -27,11 +27,12 @@ module Gemma
     private
 
     def build_payload(sport_emoji)
+      current_season = sport_emoji.sport.current_season
       {
         image_url: sport_emoji.image_url,
         emoji_name: sport_emoji.name,
         sport_id: sport_emoji.sport_id,
-        requested_by_role: sport_emoji.requested_by&.sport_role(sport_emoji.sport)
+        requested_by_role: current_season && sport_emoji.requested_by&.season_role(current_season)
       }
     end
 

@@ -2,8 +2,14 @@ class User < ApplicationRecord
   has_secure_password validations: false
 
   has_many :institution_roles, dependent: :destroy
-  has_many :sport_memberships, dependent: :destroy
-  has_many :sports, through: :sport_memberships
+  has_many :sport_commissionerships, dependent: :destroy
+  has_many :assigned_commissionerships,
+           class_name: "SportCommissionership",
+           foreign_key: :assigned_by_id,
+           dependent: :nullify
+  has_many :season_memberships, dependent: :destroy
+  has_many :seasons, through: :season_memberships
+  has_many :sports, through: :seasons
 
   has_many :parent_relationships,
            class_name: "ParentStudentRelationship",
@@ -41,6 +47,8 @@ class User < ApplicationRecord
   validate :theme_available_to_user, if: :theme_id?
   validates :first_name, :last_name, presence: true
   validates :password, length: { minimum: 8 }, allow_blank: true
+  validates :preferred_language,
+            inclusion: { in: Gemma::Translator::SUPPORTED_LANGUAGES.keys, allow_nil: true }
 
   before_validation :normalize_email
 
@@ -58,25 +66,25 @@ class User < ApplicationRecord
     update!(active: false, deleted_at: Time.current)
   end
 
-  def sport_role(sport)
-    sport_memberships.find_by(sport:)&.role
+  def season_role(season)
+    season_memberships.find_by(season:)&.role
   end
 
-  def coach_of?(sport)
-    sm = sport_memberships.find_by(sport:)
+  def coach_of_season?(season)
+    sm = season_memberships.find_by(season:)
     sm&.head_coach? || sm&.assistant_coach?
   end
 
-  def head_coach_of?(sport)
-    sport_memberships.find_by(sport:)&.head_coach?
+  def head_coach_of_season?(season)
+    season_memberships.find_by(season:)&.head_coach?
   end
 
-  def student_of?(sport)
-    sport_memberships.find_by(sport:)&.student?
+  def student_of_season?(season)
+    season_memberships.find_by(season:)&.student?
   end
 
-  def parent_in?(sport)
-    sport_memberships.find_by(sport:)&.parent?
+  def parent_in_season?(season)
+    season_memberships.find_by(season:)&.parent?
   end
 
   private
@@ -88,7 +96,7 @@ class User < ApplicationRecord
   def theme_available_to_user
     return if theme.system?
 
-    user_school_ids = sport_memberships.active.pluck(:school_id).to_set
+    user_school_ids = season_memberships.active.joins(season: :sport).pluck("sports.school_id").to_set
     unless user_school_ids.include?(theme.school_id)
       errors.add(:theme, "is not available at your school")
     end

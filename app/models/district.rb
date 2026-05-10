@@ -1,6 +1,8 @@
 class District < ApplicationRecord
   has_many :schools, dependent: :destroy
   has_many :institution_roles, dependent: :destroy
+  has_many :sport_templates, dependent: :destroy
+  has_many :sport_commissionerships, dependent: :destroy
 
   validates :name, presence: true, uniqueness: true
   validates :city, :state, :country, presence: true

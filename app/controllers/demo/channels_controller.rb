@@ -4,19 +4,16 @@ module Demo
     before_action :require_demo_mode
 
     def index
-      memberships = current_user.sport_memberships.active.includes(sport: :channels)
-
-      channels = memberships.flat_map do |sm|
-        sm.sport.channels.active.select { |ch| ch.viewable_by?(current_user) }
-      end
+      channels = policy_scope(Channel).includes(season: :sport)
 
       render json: channels.map { |ch|
         {
-          id:           ch.id,
-          name:         ch.name,
-          channel_type: ch.channel_type,
-          sport:        ch.sport.name,
-          pinned:       ch.pinned
+          id:               ch.id,
+          name:             ch.name,
+          channel_type:     ch.channel_type,
+          sport:            ch.season.sport.name,
+          season:           ch.season.name,
+          system_generated: ch.system_generated
         }
       }
     end

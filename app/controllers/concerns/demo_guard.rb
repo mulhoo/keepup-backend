@@ -4,7 +4,7 @@ module DemoGuard
   BLOCKED_ACTIONS = {
     "channels"        => %w[destroy],
     "sports"          => %w[destroy],
-    "sport_memberships" => %w[destroy],
+    "season_memberships" => %w[destroy],
     "users"           => %w[update destroy],
     "institution_roles" => %w[destroy]
   }.freeze

@@ -4,7 +4,7 @@ class School < ApplicationRecord
   has_many :institution_roles, dependent: :destroy
   has_many :coop_authorizations, dependent: :destroy
   has_many :sports, through: :coop_authorizations
-  has_many :sport_memberships, dependent: :destroy
+
 
   validates :name, presence: true, uniqueness: { scope: :district_id }
 

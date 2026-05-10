@@ -72,7 +72,10 @@ RSpec.describe Theme, type: :model do
     end
 
     context "when the user belongs to the school" do
-      before { create(:sport_membership, user: user, sport: sport, school: school, role: :student) }
+      before do
+        season = create(:season, sport: sport)
+        create(:season_membership, :student, user: user, season: season)
+      end
 
       it "returns system themes and their school theme" do
         expect(Theme.available_to(user)).to include(system_dark, school_theme)
@@ -90,7 +93,10 @@ RSpec.describe Theme, type: :model do
     let(:school_theme) { create(:theme, :school_theme, school: school, created_by: ad, variant: :dark) }
     let(:other_theme)  { create(:theme, :school_theme, school: other_school, created_by: ad, variant: :dark) }
 
-    before { create(:sport_membership, user: user, sport: sport, school: school, role: :student) }
+    before do
+      season = create(:season, sport: sport)
+      create(:season_membership, :student, user: user, season: season)
+    end
 
     it "allows selecting a theme from the user's school" do
       user.theme = school_theme

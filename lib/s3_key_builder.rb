@@ -23,7 +23,8 @@ module S3KeyBuilder
 
   def self.school_prefix(school)
     d = school.district
-    "#{slug(d.state)}/#{slug(d.name)}/#{slug(school.name)}"
+    district_key = d.subdomain.presence || slug(d.name)
+    "#{district_key}/#{slug(school.name)}"
   end
 
   def self.sport_prefix(sport)

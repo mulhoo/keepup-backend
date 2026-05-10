@@ -34,23 +34,49 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push image
+        id: build
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ENV_NAME: ${{ steps.env.outputs.name }}
         run: |
+          IMAGE=$ECR_REGISTRY/hajos-keepup:$ENV_NAME
           docker buildx build --platform linux/amd64 \
+            -t $IMAGE \
             -t $ECR_REGISTRY/hajos-keepup:${{ github.sha }} \
-            -t $ECR_REGISTRY/hajos-keepup:$ENV_NAME \
             --push \
             .
-
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
       - name: Deploy to ECS
         env:
           ENV_NAME: ${{ steps.env.outputs.name }}
+          IMAGE: ${{ steps.build.outputs.image }}
         run: |
+          # Fetch current task definition, swap the image, strip read-only fields
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition hajos-keepup-$ENV_NAME \
+            --region us-east-2 \
+            --query 'taskDefinition' \
+            --output json)
+
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | python3 -c "
+          import json, sys
+          td = json.load(sys.stdin)
+          td['containerDefinitions'][0]['image'] = '$IMAGE'
+          for k in ['taskDefinitionArn','revision','status','requiresAttributes',
+                    'placementConstraints','compatibilities','registeredAt','registeredBy']:
+              td.pop(k, None)
+          print(json.dumps(td))
+          ")
+
+          NEW_ARN=$(aws ecs register-task-definition \
+            --region us-east-2 \
+            --cli-input-json "$NEW_TASK_DEF" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
           aws ecs update-service \
             --cluster hajos-keepup-$ENV_NAME \
             --service hajos-keepup-$ENV_NAME \
-            --force-new-deployment \
+            --task-definition "$NEW_ARN" \
             --region us-east-2

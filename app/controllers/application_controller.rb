@@ -41,6 +41,13 @@ class ApplicationController < ActionController::API
     nil
   end
 
+  def current_district
+    @current_district ||= begin
+      slug = request.headers["X-District-Subdomain"].presence
+      District.find_by_subdomain(slug) if slug
+    end
+  end
+
   def bearer_token
     request.headers["Authorization"]&.delete_prefix("Bearer ")
   end

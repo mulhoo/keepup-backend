@@ -1,11 +1,10 @@
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    # Development: Vite dev server
     origins "http://localhost:5173", "http://localhost:5174",
-            # Demo deploy
-            "https://keepup-demo.hajos.app",
-            # Production web app (add when known)
-            "https://keepup.hajos.app"
+            "https://keepup.hajos.app",
+            "https://dev-keepup.hajos.app",
+            "https://staging-keepup.hajos.app",
+            /\Ahttps:\/\/[a-z0-9-]+\.keepup\.hajos\.app\z/
 
     resource "*",
       headers: :any,

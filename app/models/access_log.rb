@@ -37,6 +37,8 @@ class AccessLog < ApplicationRecord
 
   def trigger_anomaly_analysis
     GemmaAccessAnalysisJob.perform_later(id)
+  rescue SolidQueue::Job::EnqueueError, ActiveRecord::StatementInvalid => e
+    Rails.logger.warn("[AccessLog] Could not enqueue anomaly job for ##{id}: #{e.message}")
   end
 
   def write_activity

@@ -6,8 +6,14 @@ class District < ApplicationRecord
 
   validates :name, presence: true, uniqueness: true
   validates :city, :state, :country, presence: true
+  validates :subdomain, uniqueness: true, allow_nil: true,
+            format: { with: /\A[a-z0-9-]+\z/, message: "only lowercase letters, numbers, and hyphens" }
 
   scope :active, -> { where(active: true) }
+
+  def self.find_by_subdomain(slug)
+    find_by(subdomain: slug&.downcase)
+  end
 
   def admins
     institution_roles.district_admin.includes(:user).map(&:user)

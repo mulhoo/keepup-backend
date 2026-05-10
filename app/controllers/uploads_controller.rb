@@ -6,7 +6,7 @@ class UploadsController < ApplicationController
   MAX_FILE_SIZE         = 5.megabytes.to_i
   PRESIGN_TTL           = 300 # seconds
 
-  RESOURCE_TYPES = %w[school_icon school_banner profile_photo sport_emoji].freeze
+  RESOURCE_TYPES = %w[school_icon school_banner profile_photo sport_emoji sport_banner].freeze
 
   def presign
     resource_type = params.require(:resource_type)
@@ -52,7 +52,7 @@ class UploadsController < ApplicationController
     case resource_type
     when "school_icon", "school_banner" then School.find_by(id: resource_id)
     when "profile_photo"                then User.active.find_by(id: resource_id)
-    when "sport_emoji"                  then Sport.find_by(id: resource_id)
+    when "sport_emoji", "sport_banner"  then Sport.find_by(id: resource_id)
     end
   end
 

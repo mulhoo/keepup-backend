@@ -16,6 +16,8 @@ module S3KeyBuilder
       "#{school_prefix(school)}/users/#{record.id}/avatar#{ext}"
     when "sport_emoji"
       "#{sport_prefix(record)}/emojis/#{SecureRandom.hex(8)}#{ext}"
+    when "sport_banner"
+      "#{sport_prefix(record)}/banner#{ext}"
     end
   end
 

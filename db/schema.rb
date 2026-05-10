@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_10_050000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_10_080000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -319,6 +319,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_10_050000) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "icon_url"
+    t.string "banner_url"
     t.index ["district_id", "name"], name: "index_schools_on_district_id_and_name", unique: true
     t.index ["district_id"], name: "index_schools_on_district_id"
   end
@@ -479,10 +481,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_10_050000) do
     t.datetime "updated_at", null: false
     t.bigint "theme_id"
     t.string "preferred_language"
+    t.jsonb "accessibility", default: {}, null: false
+    t.jsonb "preferences", default: {}, null: false
+    t.index ["accessibility"], name: "index_users_on_accessibility", using: :gin
     t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["invitation_token"], name: "index_users_on_invitation_token", unique: true
     t.index ["jti"], name: "index_users_on_jti", unique: true
+    t.index ["preferences"], name: "index_users_on_preferences", using: :gin
     t.index ["theme_id"], name: "index_users_on_theme_id"
   end
 

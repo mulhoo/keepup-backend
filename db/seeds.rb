@@ -729,6 +729,17 @@ SportEmoji.find_or_create_by!(sport: swimming, name: ":hawk:") do |e|
   e.reviewed_at  = 1.week.ago
 end
 
+# ── Accessibility Defaults ────────────────────────────────────────────────────
+# Runs last so it catches every user created anywhere in this file.
+# Safe to re-run: merges defaults under existing prefs, never overwrites them.
+
+ACCESSIBILITY_DEFAULTS = { "font_size" => "default" }.freeze
+
+User.find_each do |u|
+  merged = ACCESSIBILITY_DEFAULTS.merge(u.accessibility)
+  u.update_columns(accessibility: merged) if merged != u.accessibility
+end
+
 puts "Done! Seeded HSD scenario:"
 puts "  District:  #{District.count}"
 puts "  Schools:   #{School.count}"

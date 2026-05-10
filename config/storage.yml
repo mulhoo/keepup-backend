@@ -1,0 +1,27 @@
+# Direct S3 upload — Rails does NOT proxy file transfers.
+# Clients receive a presigned PUT URL from POST /uploads/presign
+# and upload directly to S3. Rails only stores the resulting public URL.
+#
+# Required credentials (set via `bin/rails credentials:edit`):
+#
+#   aws:
+#     access_key_id:     AKIA...
+#     secret_access_key: ...
+#     region:            us-east-2          # your bucket region
+#     s3_bucket:         keepup-assets      # bucket name
+#
+# Bucket structure:
+#   {state}/{district-slug}/{school-slug}/icon.{ext}
+#   {state}/{district-slug}/{school-slug}/banner.{ext}
+#   {state}/{district-slug}/{school-slug}/users/{user_id}/avatar.{ext}
+#   {state}/{district-slug}/{school-slug}/{sport-slug}/emojis/{hex}.{ext}
+#
+# Example:
+#   california/hajos-school-district/alfred-high-school/icon.png
+#   california/hajos-school-district/alfred-high-school/girls-swimming/emojis/a3f2b1c0.png
+#
+# Recommended bucket policy:
+#   - Block all public access OFF (objects are individually public-read)
+#   - CORS: allow PUT from your app domain, GET from anywhere
+#   - Lifecycle: no expiration on these assets
+#   - Bucket policy: allow s3:PutObject for the IAM user, s3:GetObject for *

@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: KeepUp Frontend - S3 + CloudFront + ACM (must deploy to us-east-1)
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: keepup.hajos.app
+
+  BucketSuffix:
+    Type: String
+    Default: prod
+    Description: Unique suffix for the S3 bucket (e.g. prod, demo)
+
+Resources:
+
+  # ── S3 bucket (private, CloudFront accesses via OAC) ─────────────────────────
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub hajos-keepup-frontend-${BucketSuffix}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: app
+          Value: keepup
+        - Key: env
+          Value: !Ref BucketSuffix
+        - Key: project
+          Value: hajos
+
+  # ── Origin Access Control (modern replacement for OAI) ───────────────────────
+  OAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub hajos-keepup-${BucketSuffix}-oac
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ── ACM certificate (DNS validation - you'll add a CNAME to Namecheap) ────────
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: "*.hajos.app"
+      ValidationMethod: DNS
+
+  # ── CloudFront distribution ───────────────────────────────────────────────────
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref DomainName
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt OAC.Id
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+        # SPA routing - send 403/404 from S3 back to index.html
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        ViewerCertificate:
+          AcmCertificateArn: !Ref Certificate
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        HttpVersion: http2
+
+  # ── Bucket policy allowing CloudFront OAC to read files ──────────────────────
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${FrontendBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+
+Outputs:
+  CloudFrontDomain:
+    Description: Add this as a CNAME for keepup.hajos.app in Namecheap
+    Value: !GetAtt Distribution.DomainName
+
+  DistributionId:
+    Description: CloudFront distribution ID (needed for cache invalidation on deploy)
+    Value: !Ref Distribution
+
+  BucketName:
+    Description: S3 bucket - upload built frontend files here
+    Value: !Ref FrontendBucket

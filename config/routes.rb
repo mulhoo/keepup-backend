@@ -3,8 +3,14 @@ Rails.application.routes.draw do
 
   mount ActionCable.server => "/cable"
 
+  post "uploads/presign", to: "uploads#presign"
+
   namespace :demo do
     resource  :session,       only: [:create]
+    resource  :me,            only: [:show], controller: :users do
+      patch :accessibility,  on: :member
+      patch :preferences,    on: :member
+    end
     resources :notifications, only: [:index, :update]
     resources :activities, only: [:index] do
       member do

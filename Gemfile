@@ -12,6 +12,7 @@ gem "jwt", "~> 2.8"
 gem "rack-cors"
 gem "graphql", "~> 2.3"
 gem "pundit", "~> 2.3"
+gem "aws-sdk-s3", "~> 1", require: false
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
@@ -30,6 +31,8 @@ gem "kamal", require: false
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
+
+gem "dotenv-rails", groups: [:development, :test]
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

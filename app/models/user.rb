@@ -43,6 +43,11 @@ class User < ApplicationRecord
 
   belongs_to :theme, optional: true
 
+  store_accessor :accessibility, :font_size
+  validates :font_size, inclusion: { in: %w[small medium large] }, allow_nil: true
+
+  store_accessor :preferences, :default_district_key
+
   validates :email, presence: true, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
   validate :theme_available_to_user, if: :theme_id?
   validates :first_name, :last_name, presence: true

@@ -1,20 +1,43 @@
 #!/bin/bash
 set -e
 
-BUCKET="hajos-keepup-frontend-dev"
-DISTRIBUTION_ID="$1"
-FRONTEND_DIR="../../keepup-desktop"
+ENV="${1:-}"
+DISTRIBUTION_ID="${2:-}"
+FRONTEND_DIR="/Users/oliviamulhollandsalazar/Developer/hajos/keep-up/keepup-desktop"
 
-if [ -z "$DISTRIBUTION_ID" ]; then
-  echo "Usage: ./deploy-frontend.sh <cloudfront-distribution-id>"
+if [ -z "$ENV" ] || [ -z "$DISTRIBUTION_ID" ]; then
+  echo "Usage: ./deploy-frontend.sh <env> <cloudfront-distribution-id>"
+  echo "  env: dev | staging | prod"
   exit 1
 fi
 
-echo "Building frontend..."
-cd "$FRONTEND_DIR"
-npm run build -- --mode production
+case "$ENV" in
+  dev)
+    BUCKET="hajos-keepup-frontend-dev"
+    VITE_MODE="dev"
+    URL="https://dev-keepup.hajos.app"
+    ;;
+  staging)
+    BUCKET="hajos-keepup-frontend-staging"
+    VITE_MODE="staging"
+    URL="https://staging-keepup.hajos.app"
+    ;;
+  prod)
+    BUCKET="hajos-keepup-frontend-prod"
+    VITE_MODE="production"
+    URL="https://keepup.hajos.app"
+    ;;
+  *)
+    echo "Unknown env: $ENV (must be dev, staging, or prod)"
+    exit 1
+    ;;
+esac
 
-echo "Uploading to S3..."
+echo "Building frontend for $ENV..."
+cd "$FRONTEND_DIR"
+npm run build -- --mode "$VITE_MODE"
+
+echo "Uploading to s3://$BUCKET..."
 aws s3 sync dist/ "s3://$BUCKET" --delete --region us-east-1
 
 echo "Invalidating CloudFront cache..."
@@ -22,4 +45,4 @@ aws cloudfront create-invalidation \
   --distribution-id "$DISTRIBUTION_ID" \
   --paths "/*"
 
-echo "Done. Live at https://keepup.hajos.app"
+echo "Done. Live at $URL"

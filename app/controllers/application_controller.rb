@@ -29,7 +29,7 @@ class ApplicationController < ActionController::API
     token = bearer_token
     return nil unless token
 
-    payload = JWT.decode(token, secret_key, true, algorithm: "HS256")[0]
+    payload = JWT.decode(token, secret_key, true, algorithms: ["HS256"])[0]
 
     if payload["demo"]
       @demo_session = true

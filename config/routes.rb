@@ -5,6 +5,11 @@ Rails.application.routes.draw do
 
   post "uploads/presign", to: "uploads#presign"
 
+  namespace :admin do
+    resources :staff, only: [:index, :create, :update, :destroy]
+    resource  :district, only: [:show, :update]
+  end
+
   namespace :demo do
     resource  :session,       only: [:create]
     resource  :me,            only: [:show], controller: :users do

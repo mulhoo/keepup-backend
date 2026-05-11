@@ -8,8 +8,20 @@ class InstitutionRole < ApplicationRecord
     school_admin:      1,
     athletic_director: 2,
     dpa_contact:       3,
-    super_admin:       4
+    super_admin:       4,
+    head_coach:        5,
+    assistant_coach:   6
   }
+
+  # Roles that represent operational staff at a school (not season-specific)
+  SCHOOL_STAFF_ROLES = %w[school_admin athletic_director head_coach assistant_coach].freeze
+
+  # What each manager role is allowed to create/edit/remove
+  MANAGEABLE_BY = {
+    "district_admin"    => %w[school_admin athletic_director head_coach assistant_coach],
+    "school_admin"      => %w[athletic_director head_coach assistant_coach],
+    "athletic_director" => %w[head_coach assistant_coach],
+  }.freeze
 
   validates :role, presence: true
   validate :scope_presence
@@ -17,6 +29,7 @@ class InstitutionRole < ApplicationRecord
   scope :active,       -> { all }
   scope :for_district, ->(district) { where(district:) }
   scope :for_school,   ->(school)   { where(school:) }
+  scope :staff,        -> { where(role: SCHOOL_STAFF_ROLES) }
 
   private
 
@@ -31,7 +44,7 @@ class InstitutionRole < ApplicationRecord
 
     if district_admin? || dpa_contact?
       errors.add(:district, "is required for #{role}") if district_id.blank?
-    elsif school_admin? || athletic_director?
+    elsif school_admin? || athletic_director? || head_coach? || assistant_coach?
       errors.add(:school, "is required for #{role}") if school_id.blank?
     end
   end

@@ -10,7 +10,7 @@ gem "puma", ">= 5.0"
 gem "bcrypt", "~> 3.1.7"
 gem "jwt", "~> 2.8"
 gem "rack-cors"
-gem "graphql", "~> 2.3"
+gem "graphql", "~> 2.6"
 gem "pundit", "~> 2.3"
 gem "aws-sdk-s3", "~> 1", require: false
 

@@ -6,6 +6,12 @@ class ActivityPolicy < ApplicationPolicy
 
   class Scope < ApplicationPolicy::Scope
     def resolve
+      district_role = user.institution_roles.find_by(role: :district_admin)
+      if district_role
+        school_ids = School.where(district_id: district_role.district_id).pluck(:id)
+        return scope.where(school_id: school_ids).recent
+      end
+
       if admin?
         school = user.institution_roles.first&.school
         return scope.none unless school

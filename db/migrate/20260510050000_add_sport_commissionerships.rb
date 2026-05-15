@@ -12,7 +12,7 @@ class AddSportCommissionerships < ActiveRecord::Migration[8.0]
     end
 
     add_index :sport_commissionerships,
-              [:user_id, :sport_template_id, :district_id],
+              [ :user_id, :sport_template_id, :district_id ],
               unique: true,
               name: "index_sport_commissionerships_unique"
   end

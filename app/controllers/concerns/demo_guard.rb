@@ -15,6 +15,10 @@ module DemoGuard
 
   private
 
+  def require_demo_mode
+    render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
+  end
+
   def enforce_demo_restrictions
     blocked = BLOCKED_ACTIONS[controller_name]&.include?(action_name)
     destructive_verb = request.delete? && !request.get?

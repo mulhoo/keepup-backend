@@ -4,15 +4,24 @@ module Demo
     before_action :require_demo_mode
 
     DEMO_ACCOUNTS = {
-      "district_admin"    => "admin@hsd.edu",
-      "school_admin"      => "schooladmin@ahs.edu",
-      "athletic_director" => "ad@ahs.edu",
-      "head_coach"        => "coach.swim@ahs.edu",
-      "assistant_coach"   => "asst.swim@ahs.edu",
-      "student_captain"   => "captain@ahs.student.edu",
-      "student"           => "student1@ahs.student.edu",
-      "parent"            => "parent1@example.com"
+      "district_admin"      => "admin@hsd.edu",
+      "school_admin"        => "schooladmin@ahs.edu",
+      "athletic_director"   => "ad@ahs.edu",
+      "sports_commissioner" => "jeff.swim@kingcounty.gov",
+      "head_coach"          => "coach.swim@ahs.edu",
+      "assistant_coach"     => "asst.swim@ahs.edu",
+      "student_captain"     => "captain@ahs.student.edu",
+      "student"             => "student1@ahs.student.edu",
+      "parent"              => "parent1@example.com"
     }.freeze
+
+    def destroy
+      clear_auth_cookie
+      load Rails.root.join("db/seeds.rb")
+      head :no_content
+    rescue => e
+      render json: { error: e.message }, status: :internal_server_error
+    end
 
     def create
       role  = params[:role].to_s
@@ -28,9 +37,8 @@ module Demo
       user = User.active.find_by(email: email)
       return render json: { error: "Demo account not found — run db:seed first" }, status: :not_found unless user
 
+      set_auth_cookie(generate_demo_token(user))
       render json: {
-        token: generate_demo_token(user),
-        expires_in: 3600,
         demo: true,
         role: role,
         user: {
@@ -38,7 +46,7 @@ module Demo
           first_name:    user.first_name,
           last_name:     user.last_name,
           email:         user.email,
-          accessibility: user.accessibility,
+          accessibility: user.accessibility
         }
       }
     end

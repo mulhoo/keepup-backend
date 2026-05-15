@@ -28,7 +28,7 @@ class ModerationNotification < ApplicationRecord
   end
 
   def sport
-    message&.channel&.sport || direct_message&.dm_conversation&.sport
+    message&.channel&.season&.sport || direct_message&.dm_conversation&.season&.sport
   end
 
   private

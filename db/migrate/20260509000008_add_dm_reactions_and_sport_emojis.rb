@@ -14,7 +14,7 @@ class AddDmReactionsAndSportEmojis < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :sport_emojis, [:sport_id, :name], unique: true
+    add_index :sport_emojis, [ :sport_id, :name ], unique: true
     add_index :sport_emojis, :sport_id
     add_index :sport_emojis, :status
     add_foreign_key :sport_emojis, :sports
@@ -31,14 +31,14 @@ class AddDmReactionsAndSportEmojis < ActiveRecord::Migration[8.0]
     add_column :reactions, :sport_emoji_id, :bigint
 
     # Replace the old non-partial unique index with partial indexes per target type.
-    remove_index :reactions, [:message_id, :user_id, :emoji]
+    remove_index :reactions, [ :message_id, :user_id, :emoji ]
 
-    add_index :reactions, [:message_id, :user_id, :emoji],
+    add_index :reactions, [ :message_id, :user_id, :emoji ],
               unique: true,
               where: "message_id IS NOT NULL",
               name: "index_reactions_on_message_id_user_id_emoji"
 
-    add_index :reactions, [:direct_message_id, :user_id, :emoji],
+    add_index :reactions, [ :direct_message_id, :user_id, :emoji ],
               unique: true,
               where: "direct_message_id IS NOT NULL",
               name: "index_reactions_on_dm_id_user_id_emoji"

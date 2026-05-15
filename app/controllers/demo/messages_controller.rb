@@ -17,7 +17,7 @@ module Demo
       return render json: { error: "Content can't be blank" }, status: :unprocessable_entity if message.content.blank?
 
       result = moderate(message.content)
-      Gemma::ContentModerator.call(message, score: result[:score], reason: result[:reason])
+      Gemma::ContentModerator.call(message, score: result[:score], reason: result[:reason], category: result[:category])
       message.save!
 
       tier = moderation_tier(message)
@@ -87,13 +87,13 @@ module Demo
     def require_channel
       @channel = Channel.active.find_by(id: params[:channel_id])
       return render json: { error: "Channel not found" }, status: :not_found unless @channel
-      return render json: { error: "Not authorized for this channel" }, status: :forbidden unless @channel.viewable_by?(current_user)
+      render json: { error: "Not authorized for this channel" }, status: :forbidden unless @channel.viewable_by?(current_user)
     end
 
     def require_message
       @message = Message.find_by(id: params[:id])
       return render json: { error: "Message not found" }, status: :not_found unless @message
-      return render json: { error: "Not authorized" }, status: :forbidden unless @message.channel.viewable_by?(current_user)
+      render json: { error: "Not authorized" }, status: :forbidden unless @message.channel.viewable_by?(current_user)
     end
 
     def staff_authored?(message)
@@ -118,10 +118,14 @@ module Demo
     end
 
     def moderate(content)
-      response = GemmaClient.post("/moderate", { content:, context: "demo" })
-      { score: response[:score].to_f, reason: response[:reason], source: "gemma4" }
+      sport              = @channel.season&.sport
+      sport_template_id  = sport&.sport_template_id
+      school_id          = sport&.school_id
+
+      response = GemmaClient.post("/moderate", { content:, context: "demo", sport_template_id: })
+      { score: response[:score].to_f, reason: response[:reason], category: response[:category], source: "gemma4" }
     rescue GemmaClient::ServiceUnavailable
-      Demo::KeywordModerator.score(content).merge(source: "keyword_fallback")
+      Demo::KeywordModerator.score(content, sport_template_id:, school_id:).merge(source: "keyword_fallback")
     end
 
     def moderation_tier(message)
@@ -137,16 +141,14 @@ module Demo
       coaches    = season.head_coaches.map { |u| { role: "head_coach", name: u.full_name } }
       ad         = InstitutionRole.athletic_director.find_by(school: season.school)&.user
       recipients = coaches
-      recipients += [{ role: "athletic_director", name: ad.full_name }] if tier == "severe" && ad
+      recipients += [ { role: "athletic_director", name: ad.full_name } ] if tier == "severe" && ad
       recipients
     end
 
     def visible_messages(scope = @channel.messages)
-      if current_user.coach_of_season?(@channel.season) || current_user.institution_roles.exists?
-        scope.where(deleted_at: nil).where.not(flag_action: "blocked")
-      else
-        scope.visible.or(scope.where(sender: current_user, deleted_at: nil))
-      end
+      # Severe (blocked) messages never deliver. Questionable (held) messages
+      # deliver normally — the review queue exists only to train Gemma.
+      scope.where(deleted_at: nil).where.not(flag_action: "blocked")
     end
 
     def serialize_message(msg, viewer)
@@ -154,7 +156,7 @@ module Demo
       blocked   = msg.flag_action == "blocked"
       {
         id:               msg.id,
-        content:          display_content(msg, viewer, is_sender),
+        content:          display_content(msg, is_sender),
         sender:           msg.sender.full_name,
         sender_id:        msg.sender_id,
         flag_action:      msg.flag_action,
@@ -166,19 +168,17 @@ module Demo
       }
     end
 
-    def display_content(msg, viewer, is_sender)
-      case msg.flag_action
-      when "blocked" then is_sender ? "[Your message was blocked 🚫]" : nil
-      when "held"    then (is_sender || current_user.coach_of_season?(msg.channel.season)) ? msg.content : nil
-      else msg.content
-      end
+    def display_content(msg, is_sender)
+      # Severe: sender sees a notice, everyone else sees nothing.
+      # Questionable: message delivers to everyone; mobile shows a flag icon via `flagged`.
+      return (is_sender ? "[Your message was blocked 🚫]" : nil) if msg.flag_action == "blocked"
+      msg.content
     end
 
     def flag_indicator(msg, is_sender)
-      case msg.flag_action
-      when "blocked" then is_sender ? "🚫" : nil
-      when "held"    then "⚠️"
-      end
+      # Only severe (blocked) messages get an indicator, and only for the sender.
+      # Questionable (held) messages deliver silently — no flag shown to anyone.
+      msg.flag_action == "blocked" && is_sender ? "🚫" : nil
     end
   end
 end

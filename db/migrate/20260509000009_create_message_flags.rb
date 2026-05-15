@@ -15,9 +15,9 @@ class CreateMessageFlags < ActiveRecord::Migration[8.0]
 
       t.bigint  :reviewed_by_id               # head coach
       t.datetime :reviewed_at
-      t.bigint  :escalated_to_id              # AD
+      t.bigint :escalated_to_id              # AD
       t.datetime :escalated_at
-      t.bigint  :resolved_by_id
+      t.bigint :resolved_by_id
       t.datetime :resolved_at
 
       t.timestamps
@@ -26,7 +26,7 @@ class CreateMessageFlags < ActiveRecord::Migration[8.0]
     add_index :message_flags, :message_id
     add_index :message_flags, :flagged_by_id
     add_index :message_flags, :status
-    add_index :message_flags, [:message_id, :flagged_by_id], unique: true
+    add_index :message_flags, [ :message_id, :flagged_by_id ], unique: true
 
     add_foreign_key :message_flags, :messages
     add_foreign_key :message_flags, :users, column: :flagged_by_id

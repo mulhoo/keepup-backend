@@ -5,7 +5,9 @@ module Demo
     before_action :require_activity, only: %i[notify_parents notify_ad notify_district_admin]
 
     def index
-      activities = policy_scope(Activity).limit(50).includes(:actor, :season)
+      activities = policy_scope(Activity)
+      activities = activities.where(school_id: params[:school_id].to_i) if params[:school_id].present?
+      activities = activities.limit(50).includes(:actor, :school, season: { sport: :school })
       render json: activities.map { |a| serialize(a) }
     end
 
@@ -104,6 +106,7 @@ module Demo
         flag_action:         m["flag_action"],
         flag_reason:         m["flag_reason"],
         accessed_user_name:  m["accessed_user_name"],
+        school_name:         activity.school&.name || activity.season&.sport&.school&.name,
         accessor_role:       m["accessor_role"],
         parents_notified_at:        m["parents_notified_at"],
         ad_notified_at:             m["ad_notified_at"],

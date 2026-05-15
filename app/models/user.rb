@@ -45,6 +45,7 @@ class User < ApplicationRecord
 
   store_accessor :accessibility, :font_size
   validates :font_size, inclusion: { in: %w[small medium large] }, allow_nil: true
+  before_validation { self.font_size = nil if font_size == "default" }
 
   store_accessor :preferences, :default_district_key
 
@@ -68,7 +69,11 @@ class User < ApplicationRecord
   end
 
   def soft_delete!
-    update!(active: false, deleted_at: Time.current)
+    update_columns(active: false, deleted_at: Time.current)
+  end
+
+  def restore!
+    update_columns(active: true, deleted_at: nil)
   end
 
   def season_role(season)

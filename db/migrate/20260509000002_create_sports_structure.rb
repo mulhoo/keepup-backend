@@ -24,7 +24,7 @@ class CreateSportsStructure < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :coop_authorizations, [:sport_id, :school_id], unique: true
+    add_index :coop_authorizations, [ :sport_id, :school_id ], unique: true
     add_index :coop_authorizations, :school_id
     add_index :coop_authorizations, :athletic_director_id
 
@@ -41,10 +41,10 @@ class CreateSportsStructure < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :sport_memberships, [:user_id, :sport_id], unique: true
+    add_index :sport_memberships, [ :user_id, :sport_id ], unique: true
     add_index :sport_memberships, :sport_id
     add_index :sport_memberships, :school_id
-    add_index :sport_memberships, [:sport_id, :role]
+    add_index :sport_memberships, [ :sport_id, :role ]
 
     # Drives the hard interaction rules enforced at the API layer:
     #   parent <-> other students: BLOCKED
@@ -56,7 +56,7 @@ class CreateSportsStructure < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :parent_student_relationships, [:parent_id, :student_id], unique: true
+    add_index :parent_student_relationships, [ :parent_id, :student_id ], unique: true
     add_index :parent_student_relationships, :student_id
 
     add_foreign_key :coop_authorizations, :sports

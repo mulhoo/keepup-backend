@@ -12,7 +12,7 @@ module ApplicationCable
       token = request.params[:token] || bearer_token
       return reject_unauthorized_connection unless token
 
-      payload = JWT.decode(token, Rails.application.secret_key_base, true, algorithms: ["HS256"])[0]
+      payload = JWT.decode(token, Rails.application.secret_key_base, true, algorithms: [ "HS256" ])[0]
 
       if payload["demo"]
         User.active.find_by(id: payload["sub"]) || reject_unauthorized_connection

@@ -1,6 +1,5 @@
 class Season < ApplicationRecord
   belongs_to :sport
-  belongs_to :team_level
   belongs_to :archived_by, class_name: "User", optional: true
 
   has_many :season_memberships, dependent: :destroy
@@ -11,7 +10,7 @@ class Season < ApplicationRecord
   enum :status, { active: 0, archived: 1, pending: 2 }
 
   validates :name, :school_year, presence: true
-  validates :team_level_id, uniqueness: { scope: :school_year }
+  validates :sport_id, uniqueness: { scope: :school_year }
 
   scope :active,   -> { where(status: :active) }
   scope :archived, -> { where(status: :archived) }
@@ -22,10 +21,6 @@ class Season < ApplicationRecord
 
   def athletic_season
     sport.athletic_season
-  end
-
-  def level
-    team_level.name
   end
 
   def head_coaches

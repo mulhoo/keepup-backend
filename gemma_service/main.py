@@ -35,6 +35,7 @@ MODEL_ID = os.getenv("GEMMA_MODEL_ID", "google/gemma-3-4b-it")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 _text_pipeline = None
+
 _vision_processor = None
 _vision_model = None
 

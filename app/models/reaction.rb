@@ -6,8 +6,8 @@ class Reaction < ApplicationRecord
 
   validates :emoji, presence: true
   validate :exactly_one_target
-  validates :user_id, uniqueness: { scope: [:message_id, :emoji] }, if: -> { message_id.present? }
-  validates :user_id, uniqueness: { scope: [:direct_message_id, :emoji] }, if: -> { direct_message_id.present? }
+  validates :user_id, uniqueness: { scope: [ :message_id, :emoji ] }, if: -> { message_id.present? }
+  validates :user_id, uniqueness: { scope: [ :direct_message_id, :emoji ] }, if: -> { direct_message_id.present? }
 
   private
 

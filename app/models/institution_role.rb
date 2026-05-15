@@ -20,7 +20,7 @@ class InstitutionRole < ApplicationRecord
   MANAGEABLE_BY = {
     "district_admin"    => %w[school_admin athletic_director head_coach assistant_coach],
     "school_admin"      => %w[athletic_director head_coach assistant_coach],
-    "athletic_director" => %w[head_coach assistant_coach],
+    "athletic_director" => %w[head_coach assistant_coach]
   }.freeze
 
   validates :role, presence: true

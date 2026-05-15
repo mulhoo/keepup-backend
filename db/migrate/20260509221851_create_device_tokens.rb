@@ -10,6 +10,6 @@ class CreateDeviceTokens < ActiveRecord::Migration[8.0]
     end
 
     add_index :device_tokens, :token, unique: true
-    add_index :device_tokens, [:user_id, :active]
+    add_index :device_tokens, [ :user_id, :active ]
   end
 end

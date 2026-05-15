@@ -53,7 +53,7 @@ RSpec.describe DmConversation, type: :model do
     end
 
     it "blocks a parent from DMing another student (not their child)" do
-      users = [parent, student].sort_by(&:id)
+      users = [ parent, student ].sort_by(&:id)
       conv  = build(:dm_conversation, participant_a: users[0], participant_b: users[1], season: season)
       expect(conv).not_to be_valid
       expect(conv.errors[:base]).to include("this combination of roles cannot exchange direct messages")
@@ -62,7 +62,7 @@ RSpec.describe DmConversation, type: :model do
     it "allows a coach to DM a student" do
       coach = create(:user)
       create(:season_membership, :head_coach, user: coach, season: season)
-      users = [coach, student].sort_by(&:id)
+      users = [ coach, student ].sort_by(&:id)
       conv  = build(:dm_conversation, participant_a: users[0], participant_b: users[1], season: season)
       expect(conv).to be_valid
     end

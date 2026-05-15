@@ -37,10 +37,11 @@ module Demo
       user = User.active.find_by(email: email)
       return render json: { error: "Demo account not found — run db:seed first" }, status: :not_found unless user
 
-      set_auth_cookie(generate_demo_token(user))
+      token = generate_demo_token(user)
       render json: {
-        demo: true,
-        role: role,
+        demo:  true,
+        role:  role,
+        token: token,
         user: {
           id:            user.id,
           first_name:    user.first_name,

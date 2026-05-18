@@ -24,10 +24,10 @@ class DeeplTranslator
     request.body = {
       model:      MODEL,
       max_tokens: 1024,
-      messages:   [{
+      messages:   [ {
         role:    "user",
         content: "Translate the following text to #{target_language}. Return only the translated text with no explanation or commentary.\n\n#{text}"
-      }]
+      } ]
     }.to_json
 
     response = http.request(request)

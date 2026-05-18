@@ -8,7 +8,7 @@ class PreTranslateMessageJob < ApplicationJob
     target_languages = User
       .joins(:season_memberships)
       .where(season_memberships: { season_id: message.channel.season_id })
-      .where.not(preferred_language: [nil, ""])
+      .where.not(preferred_language: [ nil, "" ])
       .distinct
       .pluck(:preferred_language)
 

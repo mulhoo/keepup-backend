@@ -104,6 +104,7 @@ module Demo
     end
 
     def can_moderate?(message)
+      return false if message.sender_id == current_user.id
       season = message.channel&.season
       return false unless season
       moderatable_season_ids.include?(season.id)

@@ -7,11 +7,8 @@ module Demo
     # Enqueues a full database truncate + reseed.
     # Pass reset_key in the request body or as a query param.
     def create
-      ResetDemoDatabaseJob.perform_later
-      render json: {
-        queued:  true,
-        message: "Database reset queued — expect ~30 seconds before it's clean."
-      }
+      ResetDemoDatabaseJob.perform_now
+      render json: { ok: true, message: "Database reset complete." }
     rescue => e
       render json: { error: e.message }, status: :internal_server_error
     end

@@ -1,5 +1,5 @@
 module Demo
-  class SafetyController < ApplicationController
+  class SafetyController < Demo::ApplicationController
     before_action :require_demo_mode
     before_action :require_safety_session, only: [ :chats, :audit_events, :flag_conversation ]
 
@@ -169,10 +169,6 @@ module Demo
     end
 
     private
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
 
     def require_safety_session
       unless session[:safety_verified_at] && session[:safety_user_id] == current_user.id

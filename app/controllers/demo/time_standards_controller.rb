@@ -1,5 +1,5 @@
 module Demo
-  class TimeStandardsController < ApplicationController
+  class TimeStandardsController < Demo::ApplicationController
     include DemoGuard
     # GET /demo/time_standards?sport_name=Girls+Swimming
     def index

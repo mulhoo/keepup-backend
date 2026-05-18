@@ -1,5 +1,5 @@
 module Demo
-  class UsersController < ApplicationController
+  class UsersController < Demo::ApplicationController
     before_action :require_demo_mode
 
     # GET /demo/me
@@ -71,10 +71,6 @@ module Demo
         preferred_language: user.preferred_language,
         accessibility:      user.accessibility
       }
-    end
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
     end
 
     def viewable_by_current_user?(user)

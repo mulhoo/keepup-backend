@@ -1,5 +1,5 @@
 module Demo
-  class ThreadsController < ApplicationController
+  class ThreadsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
     before_action :load_parent_message

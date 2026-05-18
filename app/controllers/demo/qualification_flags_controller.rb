@@ -1,5 +1,5 @@
 module Demo
-  class QualificationFlagsController < ApplicationController
+  class QualificationFlagsController < Demo::ApplicationController
     include DemoGuard
     # GET /demo/qualification_flags
     def index

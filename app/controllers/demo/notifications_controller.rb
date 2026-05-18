@@ -1,5 +1,5 @@
 module Demo
-  class NotificationsController < ApplicationController
+  class NotificationsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
 

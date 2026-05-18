@@ -1,5 +1,5 @@
 module Demo
-  class FlaggedMessagesController < ApplicationController
+  class FlaggedMessagesController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
 

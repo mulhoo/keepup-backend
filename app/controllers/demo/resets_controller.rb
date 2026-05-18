@@ -1,6 +1,5 @@
 module Demo
-  class ResetsController < ApplicationController
-    skip_before_action :require_authentication
+  class ResetsController < Demo::ApplicationController
     before_action :require_demo_mode
     before_action :require_reset_key
 
@@ -18,10 +17,6 @@ module Demo
     end
 
     private
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
 
     def require_reset_key
       expected = ENV["DEMO_RESET_KEY"].presence

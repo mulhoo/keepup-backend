@@ -1,5 +1,5 @@
 module Demo
-  class AnnouncementsController < ApplicationController
+  class AnnouncementsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
 
@@ -72,10 +72,6 @@ module Demo
     end
 
     private
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
 
     def accessible_announcement_channels
       role = current_user.institution_roles.first

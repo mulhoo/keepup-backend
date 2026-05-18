@@ -1,5 +1,5 @@
 module Demo
-  class SchoolsController < ApplicationController
+  class SchoolsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
 

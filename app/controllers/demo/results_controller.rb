@@ -1,5 +1,5 @@
 module Demo
-  class ResultsController < ApplicationController
+  class ResultsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_coach, only: [ :create, :confirm, :approve ]
 

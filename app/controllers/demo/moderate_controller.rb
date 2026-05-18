@@ -1,5 +1,5 @@
 module Demo
-  class ModerateController < ApplicationController
+  class ModerateController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
 
@@ -12,10 +12,6 @@ module Demo
     end
 
     private
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
 
     def call_gemma(content)
       response = GemmaClient.post("/moderate", { content:, sender_role: "student" })

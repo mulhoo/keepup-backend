@@ -1,5 +1,5 @@
 module Demo
-  class DmConversationsController < ApplicationController
+  class DmConversationsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
 

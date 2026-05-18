@@ -1,5 +1,5 @@
 module Demo
-  class ThemesController < ApplicationController
+  class ThemesController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
     before_action :require_can_theme, only: [ :generate ]
@@ -26,10 +26,6 @@ module Demo
     end
 
     private
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
 
     def require_can_theme
       role = current_user.institution_roles.first&.role.to_s

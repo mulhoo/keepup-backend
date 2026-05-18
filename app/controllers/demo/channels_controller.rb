@@ -1,5 +1,5 @@
 module Demo
-  class ChannelsController < ApplicationController
+  class ChannelsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
 

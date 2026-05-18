@@ -1,5 +1,5 @@
 module Demo
-  class MessagesController < ApplicationController
+  class MessagesController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
     before_action :require_channel, only: %i[index create]
@@ -132,10 +132,6 @@ module Demo
     end
 
     private
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
 
     def coach_or_admin?
       return true if current_user.institution_roles.exists?

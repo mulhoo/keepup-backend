@@ -1,5 +1,5 @@
 module Demo
-  class SafetyReviewSignalsController < ApplicationController
+  class SafetyReviewSignalsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
     before_action :require_coach_or_admin

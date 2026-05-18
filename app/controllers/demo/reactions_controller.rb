@@ -1,5 +1,5 @@
 module Demo
-  class ReactionsController < ApplicationController
+  class ReactionsController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
     before_action :load_message

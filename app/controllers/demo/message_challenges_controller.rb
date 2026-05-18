@@ -1,5 +1,5 @@
 module Demo
-  class MessageChallengesController < ApplicationController
+  class MessageChallengesController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
 

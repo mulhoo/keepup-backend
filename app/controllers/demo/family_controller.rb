@@ -1,5 +1,5 @@
 module Demo
-  class FamilyController < ApplicationController
+  class FamilyController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
     before_action :require_parent_role

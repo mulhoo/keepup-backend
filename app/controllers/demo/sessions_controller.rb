@@ -1,6 +1,5 @@
 module Demo
-  class SessionsController < ApplicationController
-    skip_before_action :require_authentication
+  class SessionsController < Demo::ApplicationController
     before_action :require_demo_mode
 
     DEMO_ACCOUNTS = {
@@ -49,10 +48,6 @@ module Demo
     end
 
     private
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
 
     def generate_demo_token(user)
       payload = {

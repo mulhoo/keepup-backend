@@ -1,5 +1,5 @@
 module Demo
-  class ActivitiesController < ApplicationController
+  class ActivitiesController < Demo::ApplicationController
     include DemoGuard
     before_action :require_demo_mode
     before_action :require_activity, only: %i[notify_parents notify_ad notify_district_admin delete_message]
@@ -105,10 +105,6 @@ module Demo
     end
 
     private
-
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
 
     def require_activity
       @activity = Activity.find_by(id: params[:id])

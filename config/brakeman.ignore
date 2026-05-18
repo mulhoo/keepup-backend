@@ -1,0 +1,26 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "5cb5181d58f925e1216cfe40e05b255fa076115c36e6bac9d94f0822e351f2b8",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/jobs/reset_demo_database_job.rb",
+      "line": 15,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": null,
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ResetDemoDatabaseJob",
+        "method": "perform"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": "False positive: input is connection.tables piped through quote_table_name, not user data"
+    }
+  ],
+  "updated": "2026-05-18 03:10:00 +0000",
+  "brakeman_version": "8.0.4"
+}

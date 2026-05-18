@@ -28,6 +28,7 @@ module Demo
       Rails.logger.info("[Demo::Messages] moderation source=#{result[:source]} score=#{result[:score].round(3)} tier=#{tier} channel=#{@channel.id} message=#{message.id}")
       ModerationNotificationJob.perform_later("Message", message.id, tier) if message.flagged?
       BroadcastMessageJob.perform_later(message.id)
+      PreTranslateMessageJob.perform_later(message.id) unless sender_role == "student"
 
       render json: {
         message:   serialize_message(message, current_user),
@@ -120,8 +121,12 @@ module Demo
         return render json: translation_response(@message, cached.translated_text, target_language, from_cache: true)
       end
 
-      context = @message.channel.broadcast? ? "announcement" : "message"
-      result  = Gemma::Translator.translate(text: @message.content, target_language:, context:)
+      result = if DeeplTranslator.available?
+        DeeplTranslator.translate(text: @message.content, target_language:)
+      else
+        context = @message.channel.broadcast? ? "announcement" : "message"
+        Gemma::Translator.translate(text: @message.content, target_language:, context:)
+      end
 
       @message.message_translations.create!(language: target_language, translated_text: result.translated_text)
 

@@ -116,6 +116,7 @@ module Demo
 
       events = Activity
         .where(event_type: [ :safety_accessed, :safety_exited, :chat_searched, :chat_flagged ])
+        .includes(:actor, :school)
         .order(occurred_at: :desc)
         .limit(100)
 
@@ -324,16 +325,34 @@ module Demo
 
     def serialize_event(activity)
       m = activity.metadata
+
+      accessed_user_name = case activity.event_type
+      when "chat_searched" then Array(m["student_names"]).join(", ")
+      when "chat_flagged"  then m["student_name"].to_s
+      else ""
+      end
+
+      resource_type = case activity.event_type
+      when "chat_searched", "chat_flagged" then "chats"
+      when "safety_accessed", "safety_exited" then "safety viewer"
+      else "data"
+      end
+
       {
-        id:          activity.id,
-        event_type:  activity.event_type,
-        occurred_at: activity.occurred_at.iso8601,
-        notes:       m["notes"],
-        reason:      m["reason"],
-        duration_seconds: m["duration_seconds"],
-        accessor_role:    m["accessor_role"],
-        student_names:    m["student_names"],
-        keyword:          m["keyword"]
+        id:                 activity.id,
+        event_type:         activity.event_type,
+        occurred_at:        activity.occurred_at.iso8601,
+        accessor_name:      activity.actor&.full_name.to_s,
+        accessor_role:      m["accessor_role"].to_s,
+        accessed_user_name: accessed_user_name,
+        resource_type:      resource_type,
+        reason:             m["notes"].presence || m["reason"].presence,
+        school_name:        activity.school&.name.to_s,
+        anomaly_flagged:    false,
+        notes:              m["notes"],
+        duration_seconds:   m["duration_seconds"],
+        student_names:      m["student_names"],
+        keyword:            m["keyword"],
       }
     end
 
@@ -372,6 +391,7 @@ module Demo
         channel_results = channels.filter_map do |channel|
           messages = channel.messages
             .includes(:sender)
+            .where(sender: member)
             .where(created_at: from.beginning_of_day..to.end_of_day)
             .order(:created_at)
 

@@ -19,6 +19,8 @@ class GemmaClient
   ServerError = Class.new(StandardError)
 
   def post(path, body, timeout: DEFAULT_TIMEOUT)
+    raise ServiceUnavailable, "GEMMA_SERVICE_URL not configured" if service_url.blank?
+
     attempt = 0
 
     begin

@@ -352,7 +352,7 @@ module Demo
         notes:              m["notes"],
         duration_seconds:   m["duration_seconds"],
         student_names:      m["student_names"],
-        keyword:            m["keyword"],
+        keyword:            m["keyword"]
       }
     end
 

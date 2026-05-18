@@ -85,7 +85,7 @@ elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
 else:
     DEVICE = "cpu"
 
-_DTYPE = torch.bfloat16 if DEVICE in ("cuda", "mps") else torch.float32
+_DTYPE = torch.bfloat16
 
 _processor = None
 _model     = None
@@ -119,6 +119,7 @@ async def lifespan(app: FastAPI):
             MODEL_ID,
             torch_dtype=_DTYPE,
             low_cpu_mem_usage=True,
+            attn_implementation="eager",
         ).to(DEVICE)
 
     logger.info("Gemma 4 loaded and ready")

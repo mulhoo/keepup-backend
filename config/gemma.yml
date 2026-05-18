@@ -18,3 +18,5 @@ test:
 
 production:
   service_url: "<%= ENV['GEMMA_SERVICE_URL'] %>"
+  moderation:
+    timeout_seconds: 120

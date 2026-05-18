@@ -4,7 +4,7 @@ class Activity < ApplicationRecord
   belongs_to :season, optional: true
   belongs_to :school, optional: true
 
-  enum :event_type, { message_flagged: 0, data_accessed: 1, safety_accessed: 2, safety_exited: 3, chat_searched: 4, parent_coach_concern: 5 }
+  enum :event_type, { message_flagged: 0, data_accessed: 1, safety_accessed: 2, safety_exited: 3, chat_searched: 4, parent_coach_concern: 5, chat_flagged: 6 }
 
   validates :event_type, :occurred_at, presence: true
 

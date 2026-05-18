@@ -51,7 +51,7 @@ class User < ApplicationRecord
   validates :name_display, inclusion: { in: %w[first_last first_only first_last_initial] }, allow_nil: true
 
   validates :email, presence: true, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
-  validate :theme_available_to_user, if: :theme_id?
+  validate :theme_available_to_user, if: -> { theme_id.present? && (new_record? || theme_id_changed?) }
   validates :first_name, :last_name, presence: true
   validates :password, length: { minimum: 8 }, allow_blank: true
   validates :preferred_language, length: { maximum: 50 }, allow_nil: true, allow_blank: true

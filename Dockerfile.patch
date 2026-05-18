@@ -1,0 +1,5 @@
+FROM 826113468738.dkr.ecr.us-east-2.amazonaws.com/hajos-keepup:dev
+WORKDIR /rails
+COPY app/ app/
+COPY config/ config/
+COPY db/ db/

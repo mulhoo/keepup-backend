@@ -1,0 +1,4 @@
+FROM 826113468738.dkr.ecr.us-east-2.amazonaws.com/hajos-keepup-gemma:latest
+WORKDIR /app
+RUN pip install --no-cache-dir "transformers>=4.53.0" protobuf
+COPY main.py auto_flags.py ./

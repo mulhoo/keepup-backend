@@ -20,7 +20,17 @@ import torch
 from fastapi import FastAPI, HTTPException
 from PIL import Image
 from pydantic import BaseModel, Field
-from transformers import AutoProcessor, AutoModelForImageTextToText
+from transformers import AutoProcessor, AutoTokenizer, AutoModelForImageTextToText
+from transformers.tokenization_utils_base import PreTrainedTokenizerBase as _PTTB
+
+# Gemma 4 ships extra_special_tokens as a list; transformers 4.52.x expects a dict.
+# Patch the base class so the coercion happens before any tokenizer initializes.
+_orig_set_special = _PTTB._set_model_specific_special_tokens
+def _patched_set_special(self, special_tokens):
+    if isinstance(special_tokens, list):
+        special_tokens = {}
+    return _orig_set_special(self, special_tokens)
+_PTTB._set_model_specific_special_tokens = _patched_set_special
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -87,19 +97,33 @@ else:
 
 _DTYPE = torch.bfloat16
 
-_processor = None
-_model     = None
+_processor              = None
+_processor_is_multimodal = False
+_model                  = None
+
 
 _theme_cache: dict[str, dict] = {}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _processor, _model
+    global _processor, _processor_is_multimodal, _model
 
     logger.info(f"Loading Gemma 4 from {MODEL_ID} on {DEVICE} ({_DTYPE})")
 
-    _processor = AutoProcessor.from_pretrained(MODEL_ID)
+    try:
+        _processor = AutoProcessor.from_pretrained(MODEL_ID)
+        _processor_is_multimodal = True
+        logger.info("AutoProcessor loaded (multimodal)")
+    except Exception as e:
+        logger.warning(f"AutoProcessor unavailable ({e}), falling back to AutoTokenizer")
+        try:
+            _processor = AutoTokenizer.from_pretrained(MODEL_ID, use_fast=False)
+            logger.info("AutoTokenizer loaded (slow/SentencePiece)")
+        except Exception as e2:
+            logger.warning(f"Slow tokenizer failed ({e2}), trying fast tokenizer")
+            _processor = AutoTokenizer.from_pretrained(MODEL_ID)
+        _processor_is_multimodal = False
 
     if DEVICE == "cuda":
         _model = AutoModelForImageTextToText.from_pretrained(
@@ -557,6 +581,8 @@ async def analyze_access(request: AnalyzeAccessRequest) -> AnalyzeAccessResponse
 async def moderate_emoji(request: ModerateEmojiRequest) -> ModerateEmojiResponse:
     if _model is None or _processor is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
+    if not _processor_is_multimodal:
+        raise HTTPException(status_code=501, detail="Image moderation unavailable — processor loaded as text-only")
 
     try:
         image = _load_image(request)
@@ -741,6 +767,7 @@ async def health():
         "device": DEVICE,
         "dtype": str(_DTYPE),
         "model_loaded": _model is not None,
+        "multimodal": _processor_is_multimodal,
     }
 
 

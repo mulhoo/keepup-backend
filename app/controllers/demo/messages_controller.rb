@@ -19,7 +19,8 @@ module Demo
       return render json: { error: "Content can't be blank" }, status: :unprocessable_entity if message.content.blank?
       return render json: { error: "Content too long" }, status: :unprocessable_entity if message.content.length > 2000
 
-      result = moderate(message.content)
+      sender_role = resolve_sender_role
+      result = moderate(message.content, sender_role)
       Gemma::ContentModerator.call(message, score: result[:score], reason: result[:reason], category: result[:category])
       message.save!
 
@@ -183,21 +184,19 @@ module Demo
       }
     end
 
-    def moderate(content)
+    def resolve_sender_role
+      inst = current_user.institution_roles.min_by(&:id)
+      return inst.role.to_s if inst
+      current_user.season_memberships.find_by(season_id: @channel.season_id)&.role.to_s || "student"
+    end
+
+    def moderate(content, sender_role)
       sport             = @channel.season&.sport
       sport_template_id = sport&.sport_template_id
       school_id         = sport&.school_id
 
-      inst = current_user.institution_roles.min_by(&:id)
-      sender_role = if inst
-        inst.role.to_s
-      else
-        current_user.season_memberships.find_by(season_id: @channel.season_id)&.role.to_s
-      end
-
-      # COPPA/FERPA: student content stays on-device
       if sender_role == "student"
-        return Demo::KeywordModerator.score(content, sport_template_id:, school_id:).merge(source: "keyword_fallback")
+        return Demo::KeywordModerator.score(content, sport_template_id:, school_id:).merge(source: "keyword_prefilter")
       end
 
       response = GemmaClient.post("/moderate", { content:, sender_role: })

@@ -166,9 +166,10 @@ module Demo
     end
 
     def staff_authored?(message)
-      sender = message.sender
+      sender   = message.sender
       return true if sender.institution_roles.any?
-      sm = sender.season_memberships.find { |m| m.season_id == @channel.season_id }
+      season_id = (@channel || message.channel)&.season_id
+      sm = sender.season_memberships.find { |m| m.season_id == season_id }
       STAFF_SEASON_ROLES.include?(sm&.role)
     end
 

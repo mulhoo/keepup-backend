@@ -12,6 +12,12 @@ module Demo
         session[:safety_verified_at] = verified_at.iso8601
         session[:safety_user_id]     = current_user.id
 
+        safety_token = JWT.encode(
+          { sub: current_user.id, safety: true, iat: verified_at.to_i, exp: 4.hours.from_now.to_i },
+          Rails.application.secret_key_base,
+          "HS256"
+        )
+
         log_activity(:safety_accessed, {
           ip:           request.remote_ip,
           accessor_role: accessor_role_label,
@@ -20,7 +26,7 @@ module Demo
 
         notify_supervisors_of_access
 
-        return render json: { sent: false, dev_bypass: true }
+        return render json: { sent: false, dev_bypass: true, safety_token: safety_token }
       end
 
       render json: { error: "Invalid password" }, status: :unauthorized
@@ -33,12 +39,22 @@ module Demo
 
     # POST /demo/safety/end_session
     def end_session
-      verified_at_str = session[:safety_verified_at]
-      return render json: { ended: false } unless verified_at_str
+      duration = nil
 
-      duration = (Time.current - Time.parse(verified_at_str)).round
-      session.delete(:safety_verified_at)
-      session.delete(:safety_user_id)
+      if session[:safety_verified_at]
+        duration = (Time.current - Time.parse(session[:safety_verified_at])).round
+        session.delete(:safety_verified_at)
+        session.delete(:safety_user_id)
+      elsif (token = request.headers["X-Safety-Token"].presence)
+        begin
+          payload = JWT.decode(token, Rails.application.secret_key_base, true, algorithms: [ "HS256" ])[0]
+          duration = (Time.current - Time.at(payload["iat"])).round if payload["safety"]
+        rescue JWT::DecodeError, JWT::ExpiredSignature
+          nil
+        end
+      end
+
+      return render json: { ended: false } unless duration
 
       log_activity(:safety_exited, {
         reason:           params[:reason],
@@ -171,7 +187,21 @@ module Demo
     private
 
     def require_safety_session
-      unless session[:safety_verified_at] && session[:safety_user_id] == current_user.id
+      # API clients (Electron/mobile) can't use session cookies when credentials are omitted.
+      # Accept a signed safety JWT via X-Safety-Token header as the primary path.
+      token = request.headers["X-Safety-Token"].presence
+      if token
+        begin
+          payload = JWT.decode(token, Rails.application.secret_key_base, true, algorithms: [ "HS256" ])[0]
+          return if payload["safety"] && payload["sub"] == current_user&.id
+        rescue JWT::DecodeError, JWT::ExpiredSignature
+          nil
+        end
+        return render json: { error: "Safety session required" }, status: :forbidden
+      end
+
+      # Fall back to session cookie (browser clients with credentials: 'include')
+      unless session[:safety_verified_at] && session[:safety_user_id] == current_user&.id
         render json: { error: "Safety session required" }, status: :forbidden
       end
     end

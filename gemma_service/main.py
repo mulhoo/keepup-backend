@@ -308,13 +308,13 @@ def _build_grooming_examples() -> str:
     lines = ["Concerning regardless of sender role:"]
     for category, phrases in _GROOMING_ANY.items():
         label = category.replace("_", " ")
-        examples = "; ".join(f'"{p}"' for p in phrases[:4])
+        examples = "; ".join(f'"{p}"' for p in phrases[:2])
         lines.append(f"  - {label}: {examples}")
 
     lines.append("Concerning only when sender is a coach, admin, or adult (normal between peers):")
     for category, phrases in _GROOMING_ADULT_TO_MINOR.items():
         label = category.replace("_", " ")
-        examples = "; ".join(f'"{p}"' for p in phrases[:4])
+        examples = "; ".join(f'"{p}"' for p in phrases[:2])
         lines.append(f"  - {label}: {examples}")
 
     return "\n".join(lines)
@@ -525,7 +525,7 @@ async def moderate_content(request: ModerateRequest) -> ModerateResponse:
         {"role": "user", "content": prompt},
     ]
 
-    raw = _generate_text(messages, max_new_tokens=256)
+    raw = _generate_text(messages, max_new_tokens=80)
 
     try:
         parsed = _parse_json_response(raw)

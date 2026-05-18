@@ -1,6 +1,7 @@
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    origins "http://localhost:5173", "http://localhost:5174",
+    origins "http://localhost:3001", "http://localhost:5173", "http://localhost:5174",
+            "https://mobile-demo-keepup.hajos.app",
             "https://keepup-demo.hajos.app",
             "https://dev-keepup.hajos.app",
             "https://staging-keepup.hajos.app",

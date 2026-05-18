@@ -1,8 +1,9 @@
 class ActivityPolicy < ApplicationPolicy
   def index?                   = true
-  def notify_parents?          = flagged_event? && (admin? || head_coach?)
-  def notify_ad?               = flagged_event? && head_coach? && !admin?
+  def notify_parents?          = flagged_event? && (school_staff_admin? || head_coach?)
+  def notify_ad?               = flagged_event? && head_coach? && !school_staff_admin?
   def notify_district_admin?   = flagged_event? && school_level_institution_role?
+  def delete_message?          = flagged_event? && (school_staff_admin? || head_coach?)
 
   class Scope < ApplicationPolicy::Scope
     def resolve
@@ -12,8 +13,8 @@ class ActivityPolicy < ApplicationPolicy
         return scope.where(school_id: school_ids).recent
       end
 
-      if admin?
-        school = user.institution_roles.first&.school
+      if school_staff_admin?
+        school = user.institution_roles.where.not(role: %i[head_coach assistant_coach]).first&.school
         return scope.none unless school
         scope.for_school(school).recent
       else
@@ -25,8 +26,8 @@ class ActivityPolicy < ApplicationPolicy
 
     private
 
-    def admin?
-      user.institution_roles.exists?
+    def school_staff_admin?
+      user.institution_roles.where.not(role: %i[head_coach assistant_coach district_admin]).exists?
     end
 
     def coaching_season_ids
@@ -45,8 +46,8 @@ class ActivityPolicy < ApplicationPolicy
     record.event_type == "message_flagged"
   end
 
-  def admin?
-    user.institution_roles.exists?
+  def school_staff_admin?
+    user.institution_roles.where.not(role: %i[head_coach assistant_coach district_admin]).exists?
   end
 
   def head_coach?

@@ -1,5 +1,6 @@
 module Demo
-  class TimeStandardsController < DemoController
+  class TimeStandardsController < ApplicationController
+    include DemoGuard
     # GET /demo/time_standards?sport_name=Girls+Swimming
     def index
       sport_name = params[:sport_name].to_s.downcase

@@ -27,15 +27,20 @@ class Channel < ApplicationRecord
   end
 
   def viewable_by?(user)
+    # ADs have no season memberships; their access comes from explicit channel membership.
+    if user.institution_roles.athletic_director.exists?
+      return channel_memberships.exists?(user_id: user.id)
+    end
+
     membership = user.season_memberships.active.find_by(season:)
     return false unless membership
 
     case channel_type
     when "coaches_only"        then membership.role.in?(%w[head_coach assistant_coach])
-    when "athletes_only"       then membership.role.in?(%w[student head_coach assistant_coach])
+    when "athletes_only"       then membership.role.in?(%w[student]) || channel_memberships.exists?(user_id: user.id)
     when "family_group"        then channel_memberships.exists?(user_id: user.id)
     when "conversation",
-         "broadcast"           then true
+         "broadcast"           then channel_memberships.exists?(user_id: user.id)
     else false
     end
   end

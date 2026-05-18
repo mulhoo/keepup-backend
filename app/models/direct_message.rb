@@ -2,6 +2,7 @@ class DirectMessage < ApplicationRecord
   belongs_to :dm_conversation
   belongs_to :sender, class_name: "User"
   belongs_to :flag_reviewed_by, class_name: "User", optional: true
+  belongs_to :reply_to, class_name: "DirectMessage", optional: true
 
   validates :content, presence: true
 

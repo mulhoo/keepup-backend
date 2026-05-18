@@ -23,7 +23,7 @@ module Demo
           flag_reviewed:    true,
           flag_reviewed_by: current_user,
           flag_reviewed_at: Time.current,
-          flag_action:      action_taken == "approved" ? nil : "blocked"
+          flag_action:      action_taken == "approved" ? nil : "removed"
         )
         log_signal(message, action_taken)
       end
@@ -164,6 +164,7 @@ module Demo
         content:          message.content,
         flag_category:    message.flag_category,
         flag_reason:      message.flag_reason,
+        report_notes:     message.report_notes,
         moderation_score: message.moderation_score,
         sender: {
           id:   message.sender_id,

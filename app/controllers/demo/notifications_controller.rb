@@ -9,9 +9,14 @@ module Demo
                                       .order(created_at: :desc).limit(20)
                                       .includes(:recipient)
 
+      # Preload activity_id for moderation notifications to avoid N+1
+      msg_ids         = mod.map(&:message_id).compact
+      activity_by_msg = Activity.where(subject_type: "Message", subject_id: msg_ids)
+                                .index_by(&:subject_id)
+
       notifications = [
         *safety.map { |n| serialize_safety(n) },
-        *mod.map    { |n| serialize_moderation(n) }
+        *mod.map    { |n| serialize_moderation(n, activity_by_msg) }
       ].sort_by { |n| n[:created_at] }.reverse.first(30)
 
       render json: notifications
@@ -61,10 +66,11 @@ module Demo
       }
     end
 
-    def serialize_moderation(notif)
-      sport   = notif.sport
-      school  = sport&.school
-      channel = notif.message&.channel
+    def serialize_moderation(notif, activity_by_msg = {})
+      sport    = notif.sport
+      school   = sport&.school
+      channel  = notif.message&.channel
+      activity = activity_by_msg[notif.message_id]
       is_district_admin = current_user.institution_roles.where(role: :district_admin).exists?
       body    = "Flagged content in #{sport&.name || 'a sport'}"
       body   += " at #{school.name}"         if school && is_district_admin
@@ -78,6 +84,7 @@ module Demo
         read_at:           notif.read_at&.iso8601,
         created_at:        notif.created_at.iso8601,
         metadata: {
+          "activity_id"    => activity&.id,
           "flagged_content" => {
             "type"       => notif.message_id ? "channel_message" : "direct_message",
             "id"         => notif.message_id || notif.direct_message_id,

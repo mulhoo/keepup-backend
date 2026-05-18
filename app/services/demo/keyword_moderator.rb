@@ -1,27 +1,19 @@
 module Demo
   # Fallback content scorer used when the Gemma 4 FastAPI is unavailable.
-  # Also used as the primary scorer in the demo environment.
+  #
+  # Only covers patterns where the rule is unambiguous without AI context:
+  # explicit threats, weapons, self-harm, and off-platform solicitation.
+  # General bad language and slurs are Gemma's job — when Gemma is down,
+  # those cases may pass through; that is an operational gap, not a design gap.
   #
   # Scoring is sport-aware: if coaches at a school have repeatedly approved messages
-  # in a given category for a given sport, scores for that category are reduced so
-  # Gemma stops flagging them. This is the on-rails side of the learning loop —
-  # the mobile Gemma model does the same via the synced safety_review_signals table.
-  #
-  # Thresholds (from config/gemma.yml): questionable ≥0.40, severe ≥0.75.
+  # in a given category for a given sport, scores for that category are reduced.
   # Learning only adjusts scores within the questionable tier — severe content
   # is never softened by coach approvals.
-  #
-  # Severity policy:
-  #   Severe  — explicit threats toward a person, slurs, self-harm language,
-  #              weapons references, off-platform solicitation by adults.
-  #   Questionable — competitive trash talk, generic hostility, hyperbole.
-  #   Normal athlete expressions ("lose it", "go crazy", "I'll destroy them") are
-  #   expected to score below the questionable threshold and flow through.
   class KeywordModerator
     RULES = [
-      # Direct personal threat: "I'm going to kill/hurt/attack Coach"
-      # Negative lookahead prevents catching sports idioms ("kill it at the meet",
-      # "kill this race", "hurt the other team").
+      # Direct personal threat — negative lookahead prevents sports idioms
+      # ("kill it at the meet", "hurt the other team", etc.)
       { pattern: /i('m| am) going to (kill|hurt|attack|stab|shoot) (?!it\b|this\b|the (?:game|meet|race|match|relay|practice|comp(?:etition)?))/i,
         category: "explicit_threat", base_score: 0.92, learnable: false },
 
@@ -37,15 +29,23 @@ module Demo
       { pattern: /\b(suicide|kill myself|end my life|want to die)\b/i,
         category: "self_harm", base_score: 0.90, learnable: false },
 
-      # Slurs — racial, ethnic, homophobic, gender
-      { pattern: /\b(nigga|nigger|faggot|spic|chink|kike|dyke|tranny|retard)\b/i,
-        category: "slur", base_score: 0.95, learnable: false },
+      # Grooming: physical isolation combined with secrecy — unambiguous regardless
+      # of sender role. Peer-to-peer "meet me alone + don't tell" is still a red flag.
+      { pattern: /\b(meet me alone|meet me privately|meet me in private|come alone|don't bring anyone|just the two of us)\b/i,
+        category: "grooming", base_score: 0.84, learnable: false },
+      { pattern: /\b(our (little )?secret|keep this between us|keep this to yourself|don't tell (anyone|the others?|your (parents?|mom|dad|coach))|promise you won't tell)\b/i,
+        category: "grooming", base_score: 0.86, learnable: false },
 
-      # Off-platform solicitation — flagged because coaches/admins can be predators.
-      # "Let's talk at practice" / "see you at school" are NOT in this pattern.
-      # Only triggers on explicit off-app invitations or sharing personal contact info.
+      # Off-platform solicitation — only explicit off-app invitations or personal contact info.
+      # "Let's talk at practice" / "see you at school" are NOT covered here.
       { pattern: /\b(my (?:personal |cell )?(?:number|phone) is|text me at|call me at|add me on (?:snap(?:chat)?|insta(?:gram)?|tiktok|discord)|dm me (?:on|there)|off (?:the |this )?app|not on (?:the |this )?app|take this (?:off|offline)|move this off|outside (?:the )?app)\b/i,
         category: "off_platform_contact", base_score: 0.82, learnable: false },
+
+      # Slurs — Gemma handles the full list; these catch the most common derogatory
+      # terms so severe content doesn't slip through when Gemma is unavailable.
+      # Leet variants (b1tch, f4g) are normalized by the caller before matching.
+      { pattern: /\b(bitch|bastard|asshole|cunt|slut|whore|fag|faggot|dyke|nigger|nigga|spic|chink|kike|wetback|retard)\b/i,
+        category: "slur", base_score: 0.91, learnable: false },
 
       { pattern: /\b(kill|murder|destroy|annihilate|demolish|obliterate|massacre)\b/i,
         category: "competitive_aggression", base_score: 0.55, learnable: true },
@@ -79,7 +79,6 @@ module Demo
       return { score: rand(0.02..0.18).round(3), reason: nil, category: nil } unless rule
 
       adjusted = rule[:learnable] ? apply_learning(rule[:base_score], rule[:category]) : rule[:base_score]
-
       { score: adjusted.clamp(0.0, 1.0).round(3), reason: reason_for(rule[:category]), category: rule[:category] }
     end
 
@@ -102,12 +101,13 @@ module Demo
 
     def reason_for(category)
       case category
-      when "competitive_aggression"  then "Language common in competitive sports contexts — may be normal team talk."
-      when "general_hostility"       then "Detected potentially hostile or demeaning language."
-      when "explicit_threat"         then "Detected language consistent with a direct threat toward a person."
-      when "self_harm"               then "Detected language that may indicate self-harm ideation."
-      when "slur"                    then "Detected a slur or hate-based term."
-      when "off_platform_contact"    then "Detected an invitation to communicate outside the platform. Flagged because this pattern can indicate inappropriate contact between adults and students."
+      when "competitive_aggression" then "Language common in competitive sports contexts — may be normal team talk."
+      when "general_hostility"      then "Detected potentially hostile or demeaning language."
+      when "explicit_threat"        then "Detected language consistent with a direct threat toward a person."
+      when "self_harm"              then "Detected language that may indicate self-harm ideation."
+      when "off_platform_contact"   then "Detected an invitation to communicate outside the platform. Flagged because this pattern can indicate inappropriate contact between adults and students."
+      when "grooming"               then "Detected language consistent with grooming behavior — isolation or secrecy patterns that put minors at risk."
+      when "slur"                   then "Detected a slur or derogatory term targeting a person's identity."
       end
     end
   end

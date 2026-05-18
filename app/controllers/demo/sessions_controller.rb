@@ -7,20 +7,15 @@ module Demo
       "district_admin"      => "admin@hsd.edu",
       "school_admin"        => "schooladmin@ahs.edu",
       "athletic_director"   => "ad@ahs.edu",
-      "sports_commissioner" => "jeff.swim@kingcounty.gov",
-      "head_coach"          => "coach.swim@ahs.edu",
-      "assistant_coach"     => "asst.swim@ahs.edu",
-      "student_captain"     => "captain@ahs.student.edu",
-      "student"             => "student1@ahs.student.edu",
+      "head_coach"     => "coach.swim@ahs.edu",
+      "assistant_coach"=> "asst.swim@ahs.edu",
+      "student"        => "student1@ahs.student.edu",
       "parent"              => "parent1@example.com"
     }.freeze
 
     def destroy
       clear_auth_cookie
-      load Rails.root.join("db/seeds.rb")
       head :no_content
-    rescue => e
-      render json: { error: e.message }, status: :internal_server_error
     end
 
     def create
@@ -47,6 +42,7 @@ module Demo
           first_name:    user.first_name,
           last_name:     user.last_name,
           email:         user.email,
+          theme:         user.effective_theme&.color_palette,
           accessibility: user.accessibility
         }
       }
@@ -61,6 +57,7 @@ module Demo
     def generate_demo_token(user)
       payload = {
         sub:  user.id,
+        jti:  SecureRandom.uuid,
         demo: true,
         role: params[:role],
         exp:  1.hour.from_now.to_i,

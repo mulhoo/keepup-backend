@@ -18,9 +18,18 @@ module Admin
       require_commissioner_management!
       return if performed?
 
-      user = User.active.find_by(email: params[:email]&.downcase&.strip)
+      email = params[:email]&.downcase&.strip
+      district_id = @sport.school.district_id
+
+      user = User.active
+        .where(email: email)
+        .where(
+          id: InstitutionRole.where(district_id: district_id).select(:user_id)
+            .or(InstitutionRole.joins(school: :district).where(districts: { id: district_id }).select(:user_id))
+        ).first
+
       unless user
-        return render json: { error: "No active user found with that email" }, status: :not_found
+        return render json: { error: "No active user found with that email in this district" }, status: :not_found
       end
 
       @sport.commissioner = user
@@ -100,10 +109,17 @@ module Admin
         end
       end
 
-      # Coaches see all sports at their school (frontend filters to their own)
+      # Coaches see only sports they have an active membership in an active current-year season
       coach_role = current_user.institution_roles.find_by(role: %w[head_coach assistant_coach])
       if coach_role
-        return base.where(school_id: coach_role.school_id)
+        year = Date.current.month >= 8 ? Date.current.year : Date.current.year - 1
+        school_year = "#{year}-#{(year + 1).to_s[-2..]}"
+        coached_sport_ids = current_user.season_memberships
+                                        .active
+                                        .joins(:season)
+                                        .merge(Season.active.where(school_year: school_year))
+                                        .pluck("seasons.sport_id")
+        return base.where(id: coached_sport_ids)
       end
 
       commissionerships = current_user.sport_commissionerships.active.to_a

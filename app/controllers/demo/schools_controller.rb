@@ -18,18 +18,19 @@ module Demo
     private
 
     def visible_schools
-      inst_role = current_user.institution_roles.first
-      if inst_role&.super_admin?
+      roles = current_user.institution_roles.to_a
+
+      if roles.any?(&:super_admin?)
         School.active.order(:name)
-      elsif inst_role&.district_admin?
-        School.active.where(district_id: inst_role.district_id).order(:name)
-      elsif inst_role
-        School.active.where(id: inst_role.school_id).order(:name)
+      elsif roles.any?(&:district_admin?)
+        district_ids = roles.select(&:district_admin?).map(&:district_id)
+        School.active.where(district_id: district_ids).order(:name)
       else
-        season_school_ids = current_user.season_memberships.active
-                              .joins(season: :sport)
-                              .pluck("sports.school_id").uniq
-        School.active.where(id: season_school_ids).order(:name)
+        school_ids  = roles.filter_map(&:school_id)
+        school_ids += current_user.season_memberships.active
+                        .joins(season: :sport)
+                        .pluck("sports.school_id")
+        School.active.where(id: school_ids.uniq).order(:name)
       end
     end
 

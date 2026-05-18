@@ -18,7 +18,7 @@ module Demo
     def serialize_child_dashboard(child)
       sports = child.season_memberships.active
         .joins(season: :sport)
-        .includes(season: [ :sport, :season_memberships, :announcements ])
+        .includes(season: [ { sport: [ :sport_template, :school ] }, :season_memberships, :channels ])
         .map { |sm| serialize_child_sport(sm) }
 
       {
@@ -30,35 +30,34 @@ module Demo
     end
 
     def serialize_child_sport(sm)
-      season = sm.season
-      sport  = season.sport
+      season   = sm.season
+      sport    = season.sport
+      template = sport.sport_template
 
       coaches = season.season_memberships.active
         .where(role: %w[head_coach assistant_coach])
         .includes(:user)
         .map { |c| { name: c.user.full_name, role: c.role } }
 
-      announcements = season.announcements
-        .order(created_at: :desc)
-        .limit(5)
-        .includes(:sender)
-        .map do |a|
-          {
-            id:          a.id,
-            content:     a.content,
-            sender_name: a.sender.full_name,
-            sent_at:     a.created_at.iso8601,
-          }
-        end
+      ann_channel = season.channels.find { |ch| ch.name == "announcements" }
+      announcements = if ann_channel
+        Message.where(channel: ann_channel, deleted_at: nil)
+          .order(created_at: :desc)
+          .limit(5)
+          .includes(:sender)
+          .map { |a| { id: a.id, content: a.content, sender_name: a.sender.full_name, sent_at: a.created_at.iso8601 } }
+      else
+        []
+      end
 
       {
-        season_id:        season.id,
-        sport_name:       sport.name,
-        level:            sport.levels.first || "Varsity",
-        school_name:      sport.school.name,
-        season_name:      season.name,
-        athletic_season:  season.athletic_season,
-        coaches:          coaches,
+        season_id:            season.id,
+        sport_name:           "#{sport.gender.capitalize} #{template.name}",
+        level:                sport.levels.first || "Varsity",
+        school_name:          sport.school.name,
+        season_name:          season.name,
+        athletic_season:      template.athletic_season,
+        coaches:              coaches,
         recent_announcements: announcements,
       }
     end
@@ -122,10 +121,12 @@ module Demo
       other_name = staff_role ? other_sm.user.full_name : "Student"
 
       is_peer = staff_role.nil?
-      flagged  = is_peer && conv.direct_messages.any? { |m|
+      # Coach DMs are never shown to parents regardless of approval status.
+      # Parents who have concerns contact the AD directly; the AD handles off-platform.
+      flagged      = is_peer && conv.direct_messages.any? { |m|
         m.flag_action.present? && m.flag_action != "blocked"
       }
-      show_content = !is_peer || flagged || approved_request.present?
+      show_content = is_peer && (flagged || approved_request.present?)
 
       messages = show_content ? conv.direct_messages
         .to_a
@@ -133,7 +134,7 @@ module Demo
         .sort_by(&:created_at) : []
 
       access = if !is_peer
-        { type: "staff" }
+        { type: "coach" }
       elsif flagged
         { type: "flagged" }
       elsif approved_request

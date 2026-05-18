@@ -23,6 +23,8 @@ class InstitutionRole < ApplicationRecord
     "athletic_director" => %w[head_coach assistant_coach]
   }.freeze
 
+  before_create -> { self.start_date ||= Date.current }
+
   validates :role, presence: true
   validate :scope_presence
 

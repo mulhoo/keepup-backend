@@ -46,12 +46,13 @@ class ModerationNotificationJob < ApplicationJob
       school:      season.school,
       occurred_at: record.created_at,
       metadata:    {
-        tier:        tier,
-        flag_action: record.flag_action,
-        flag_reason: record.flag_reason,
-        sport:       season.sport.name,
-        season:      season.name,
-        channel:     channel.respond_to?(:name) ? channel.name : "Direct Message"
+        tier:         tier,
+        flag_action:  record.flag_action,
+        flag_reason:  record.flag_reason,
+        report_notes: record.report_notes,
+        sport:        season.sport.name,
+        season:       season.name,
+        channel:      channel.respond_to?(:name) ? channel.name : "Direct Message"
       }
     )
   end

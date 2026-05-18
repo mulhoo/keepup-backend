@@ -19,6 +19,17 @@ module DemoGuard
     render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
   end
 
+  # Returns the school if the current user is an athletic director, nil otherwise.
+  def ad_school
+    current_user.institution_roles.find_by(role: :athletic_director)&.school
+  end
+
+  # "2025-26" style string for the school year that contains the given date.
+  def current_school_year(date = Date.current)
+    year = date.month >= 8 ? date.year : date.year - 1
+    "#{year}-#{(year + 1).to_s[-2..]}"
+  end
+
   def enforce_demo_restrictions
     blocked = BLOCKED_ACTIONS[controller_name]&.include?(action_name)
     destructive_verb = request.delete? && !request.get?

@@ -1,20 +1,14 @@
 """
 KeepUp Gemma 4 Moderation Service
 
-Exposes four endpoints called by the Rails backend:
-  POST /moderate        - Reference implementation of on-device text moderation (Role 1)
-  POST /analyze_access  - Behavioral anomaly detection on access log patterns (Role 2)
-  POST /moderate_emoji  - Multimodal image moderation for sport emoji submissions (Role 3)
-  POST /translate       - Coach/AD content translation for multilingual families (Role 4)
-
-IMPORTANT — Role 1 & 4 privacy boundary:
-  Student message content is moderated and translated ON-DEVICE by Gemma 4 E4B running in
-  the mobile app. These endpoints are used only for coach/AD/admin-authored content where
-  server-side processing is COPPA-safe (no student message content ever sent server-side).
+Privacy boundary: student message content is moderated and translated ON-DEVICE by Gemma 4 E4B
+in the mobile app. These endpoints handle coach/AD/admin-authored content only — no student
+message content is ever sent server-side.
 """
 
 import os
 import io
+import re
 import json
 import base64
 import logging
@@ -26,44 +20,111 @@ import torch
 from fastapi import FastAPI, HTTPException
 from PIL import Image
 from pydantic import BaseModel, Field
-from transformers import AutoProcessor, AutoModelForImageTextToText, pipeline
+from transformers import AutoProcessor, AutoModelForImageTextToText
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_ID = os.getenv("GEMMA_MODEL_ID", "google/gemma-3-4b-it")
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+from auto_flags import GROOMING_ANY as _GROOMING_ANY, GROOMING_ADULT_TO_MINOR as _GROOMING_ADULT_TO_MINOR
+from better_profanity import profanity as _profanity
 
-_text_pipeline = None
+_profanity.load_censor_words()
 
-_vision_processor = None
-_vision_model = None
+_LEET = str.maketrans({
+    '4': 'a', '@': 'a', '^': 'a',
+    '3': 'e',
+    '1': 'i', '!': 'i', '|': 'i',
+    '0': 'o',
+    '5': 's', '$': 's',
+    '6': 'g', '9': 'g',
+    '7': 't', '+': 't',
+    '8': 'b',
+    '2': 'z',
+})
+
+
+def _norm_token(token: str) -> str:
+    return re.sub(r'[^a-z]', '', token.lower().translate(_LEET))
+
+
+def _slur_prefilter(content: str) -> "ModerateResponse | None":
+    tokens = re.split(r'\s+', content.strip())
+    norms  = [_norm_token(t) for t in tokens if t]
+
+    if _profanity.contains_profanity(' '.join(norms)) or _profanity.contains_profanity(content):
+        return _slur_hit()
+
+    for window in range(2, 11):
+        for i in range(len(norms) - window + 1):
+            chunk = norms[i:i + window]
+            if all(len(c) == 1 for c in chunk) and _profanity.contains_profanity(''.join(chunk)):
+                return _slur_hit()
+
+    return None
+
+
+def _slur_hit() -> "ModerateResponse":
+    return ModerateResponse(
+        flagged=True,
+        score=1.0,
+        tier="severe",
+        categories=["hate_speech"],
+        reason="Message contains a slur or a variation of one.",
+    )
+
+
+MODEL_ID = os.getenv("GEMMA_MODEL_ID", "google/gemma-4-E4B-it")
+
+# MPS requires attn_implementation="eager" — the fused SDPA kernel crashes on certain Gemma 4 tensor shapes.
+if os.getenv("GEMMA_DEVICE"):
+    DEVICE = os.getenv("GEMMA_DEVICE")
+elif torch.cuda.is_available():
+    DEVICE = "cuda"
+elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+    DEVICE = "mps"
+else:
+    DEVICE = "cpu"
+
+_DTYPE = torch.bfloat16 if DEVICE in ("cuda", "mps") else torch.float32
+
+_processor = None
+_model     = None
+
+_theme_cache: dict[str, dict] = {}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _text_pipeline, _vision_processor, _vision_model
+    global _processor, _model
 
-    logger.info(f"Loading Gemma 4 from {MODEL_ID} on {DEVICE}")
+    logger.info(f"Loading Gemma 4 from {MODEL_ID} on {DEVICE} ({_DTYPE})")
 
-    _text_pipeline = pipeline(
-        "text-generation",
-        model=MODEL_ID,
-        device_map="auto",
-        torch_dtype=torch.bfloat16,
-    )
+    _processor = AutoProcessor.from_pretrained(MODEL_ID)
 
-    _vision_processor = AutoProcessor.from_pretrained(MODEL_ID)
-    _vision_model = AutoModelForImageTextToText.from_pretrained(
-        MODEL_ID,
-        device_map="auto",
-        torch_dtype=torch.bfloat16,
-    )
+    if DEVICE == "cuda":
+        _model = AutoModelForImageTextToText.from_pretrained(
+            MODEL_ID,
+            device_map="auto",
+            torch_dtype=_DTYPE,
+        )
+    elif DEVICE == "mps":
+        _model = AutoModelForImageTextToText.from_pretrained(
+            MODEL_ID,
+            torch_dtype=_DTYPE,
+            attn_implementation="eager",
+            low_cpu_mem_usage=True,
+        ).to(DEVICE)
+    else:
+        _model = AutoModelForImageTextToText.from_pretrained(
+            MODEL_ID,
+            torch_dtype=_DTYPE,
+            low_cpu_mem_usage=True,
+        ).to(DEVICE)
 
     logger.info("Gemma 4 loaded and ready")
     yield
 
-    del _text_pipeline, _vision_processor, _vision_model
+    del _processor, _model
 
 
 app = FastAPI(
@@ -73,9 +134,30 @@ app = FastAPI(
 )
 
 
-# ---------------------------------------------------------------------------
-# Request / response schemas
-# ---------------------------------------------------------------------------
+def _generate_text(
+    messages: list[dict],
+    max_new_tokens: int = 256,
+    do_sample: bool = False,
+    temperature: float | None = None,
+    top_p: float | None = None,
+) -> str:
+    inputs = _processor.apply_chat_template(
+        messages,
+        add_generation_prompt=True,
+        tokenize=True,
+        return_dict=True,
+        return_tensors="pt",
+    ).to(DEVICE)
+    gen_kwargs: dict = {"max_new_tokens": max_new_tokens, "do_sample": do_sample}
+    if temperature is not None:
+        gen_kwargs["temperature"] = temperature
+    if top_p is not None:
+        gen_kwargs["top_p"] = top_p
+    with torch.inference_mode():
+        output_ids = _model.generate(**inputs, **gen_kwargs)
+    input_len = inputs["input_ids"].shape[-1]
+    return _processor.decode(output_ids[0][input_len:], skip_special_tokens=True)
+
 
 class ModerateRequest(BaseModel):
     content: str = Field(..., description="Message text to evaluate")
@@ -132,17 +214,11 @@ class ModerateEmojiResponse(BaseModel):
     categories: list[str]
 
 
-SUPPORTED_LANGUAGES: dict[str, str] = {
-    "es":    "Spanish",
-    "zh-CN": "Mandarin Chinese (Simplified)",
-}
-
-
 class TranslateRequest(BaseModel):
     text: str = Field(..., description="Coach/AD-authored text to translate")
     target_language: str = Field(
         ...,
-        description=f"BCP-47 target language code. Supported: {', '.join(SUPPORTED_LANGUAGES)}"
+        description="Target language name (e.g. 'French', 'Arabic', 'Japanese')"
     )
     source_language: str = Field("en", description="Source language code (default: en)")
     context: str = Field(
@@ -158,29 +234,91 @@ class TranslateResponse(BaseModel):
     language_name: str
 
 
-# ---------------------------------------------------------------------------
-# Prompt builders
-# ---------------------------------------------------------------------------
+class MeetHighlight(BaseModel):
+    athlete: str
+    event: str
+    time: Optional[str] = None
+    pr: bool = False
 
-MODERATION_SYSTEM_PROMPT = """You are a content safety classifier for KeepUp, a sports communication
+
+class SummarizeMeetRequest(BaseModel):
+    sport: str
+    home_school: str
+    away_school: str
+    home_score: int
+    away_score: int
+    venue: Optional[str] = None
+    date: Optional[str] = None
+    highlights: list[MeetHighlight] = []
+
+
+class SummarizeMeetResponse(BaseModel):
+    summary: str
+    focus_athlete: Optional[str] = None
+    focus_event: Optional[str] = None
+
+
+class GenerateThemeRequest(BaseModel):
+    school_colors: str = Field(..., description="Plain-language description of school colors, e.g. 'purple and white'")
+    school_name: Optional[str] = Field(None, description="School name for context")
+
+class ThemePalette(BaseModel):
+    color_background:      str
+    color_surface:         str
+    color_surface_variant: str
+    color_border:          str
+    color_primary:         str
+    color_accent:          str
+    color_text_primary:    str
+    color_text_secondary:  str
+    color_text_on_primary: str
+    color_text_on_accent:  str
+
+class GenerateThemeResponse(BaseModel):
+    dark:  ThemePalette
+    light: ThemePalette
+
+
+def _build_grooming_examples() -> str:
+    lines = ["Concerning regardless of sender role:"]
+    for category, phrases in _GROOMING_ANY.items():
+        label = category.replace("_", " ")
+        examples = "; ".join(f'"{p}"' for p in phrases[:4])
+        lines.append(f"  - {label}: {examples}")
+
+    lines.append("Concerning only when sender is a coach, admin, or adult (normal between peers):")
+    for category, phrases in _GROOMING_ADULT_TO_MINOR.items():
+        label = category.replace("_", " ")
+        examples = "; ".join(f'"{p}"' for p in phrases[:4])
+        lines.append(f"  - {label}: {examples}")
+
+    return "\n".join(lines)
+
+
+MODERATION_SYSTEM_PROMPT = f"""You are a content safety classifier for KeepUp, a sports communication
 platform used by high school students aged 14–18. Your job is to evaluate messages for safety.
 
 Respond with a JSON object only — no prose, no markdown, no explanation outside the JSON.
 
 JSON schema:
-{
+{{
   "score": <float 0.0–1.0, where 0 = completely safe, 1 = extremely harmful>,
-  "categories": <array of strings from: ["violence", "harassment", "grooming", "explicit", "bullying", "self_harm", "none"]>,
+  "categories": <array of strings from: ["violence", "harassment", "grooming", "explicit", "bullying", "self_harm", "hate_speech", "none"]>,
   "reason": <one sentence explanation if score > 0, else null>
-}
+}}
 
 Scoring guide:
 - 0.00–0.39: Safe or clearly benign (even if edgy humor between peers)
 - 0.40–0.74: Potentially harmful — context-dependent, could be a joke or could be a problem
 - 0.75–1.00: Clearly harmful — threats, explicit grooming language, graphic violence, explicit content
+- Slurs, hate speech, or derogatory language targeting race, gender, sexuality, or disability: 0.90–1.00 regardless of context. This includes leet-speak and character-substitution variants — treat them identically to the plain form.
+- Grooming patterns from a coach or adult to a student: 0.85–1.00
 
-Err on the side of caution for any adult-to-student or student-to-student content involving
-power dynamics. A coach using pressure tactics scores higher than the same words between peers."""
+Grooming patterns to watch for (score higher when sender is coach/admin, still flag when student-to-student):
+{_build_grooming_examples()}
+
+Err on the side of caution for any adult-to-student content involving power dynamics.
+A coach using pressure tactics or boundary-crossing language scores higher than the same words between peers."""
 
 ACCESS_ANALYSIS_SYSTEM_PROMPT = """You are a behavioral anomaly detector for KeepUp, a school sports
 platform. You analyze access log patterns to detect suspicious admin behavior.
@@ -234,13 +372,84 @@ JSON schema:
   "reason": <one sentence if score > 0.3, else null>
 }"""
 
+THEME_GENERATION_SYSTEM_PROMPT = """You are a UI theme designer for KeepUp, a high school sports communication platform. Given a school's colors described in plain language, generate a complete and accessible color theme.
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+Produce both a dark variant and a light variant. Both must prominently use the school's colors while maintaining excellent readability.
+
+Color slot definitions:
+- color_background: Main page background
+- color_surface: Card and panel backgrounds (slightly different from background)
+- color_surface_variant: Secondary surfaces, muted sections
+- color_border: Border and divider color
+- color_primary: Primary brand color for buttons and active states — strongly reflect school colors
+- color_accent: Complementary accent/highlight color
+- color_text_primary: Main text — must have 4.5:1+ contrast on color_surface
+- color_text_secondary: Muted text — must have 3:1+ contrast on color_surface
+- color_text_on_primary: Text drawn on top of color_primary
+- color_text_on_accent: Text drawn on top of color_accent
+
+Requirements:
+- All values must be valid 6-digit hex colors (#RRGGBB format)
+- Dark variant: very dark backgrounds (lightness < 20%), vibrant primary/accent
+- Light variant: light backgrounds (lightness > 92%), rich primary color
+- WCAG AA contrast for all text/background pairs
+- School colors must be clearly visible in primary and accent slots
+- Respond with JSON only — no prose, no markdown outside the JSON
+
+JSON schema:
+{
+  "dark": {
+    "color_background": "#hex", "color_surface": "#hex", "color_surface_variant": "#hex",
+    "color_border": "#hex", "color_primary": "#hex", "color_accent": "#hex",
+    "color_text_primary": "#hex", "color_text_secondary": "#hex",
+    "color_text_on_primary": "#hex", "color_text_on_accent": "#hex"
+  },
+  "light": {
+    "color_background": "#hex", "color_surface": "#hex", "color_surface_variant": "#hex",
+    "color_border": "#hex", "color_primary": "#hex", "color_accent": "#hex",
+    "color_text_primary": "#hex", "color_text_secondary": "#hex",
+    "color_text_on_primary": "#hex", "color_text_on_accent": "#hex"
+  }
+}"""
+
+def to_palette(d: dict) -> ThemePalette:
+    return ThemePalette(
+        color_background=d.get("color_background", "#111827"),
+        color_surface=d.get("color_surface", "#1f2937"),
+        color_surface_variant=d.get("color_surface_variant", "#374151"),
+        color_border=d.get("color_border", "#4b5563"),
+        color_primary=d.get("color_primary", "#6366f1"),
+        color_accent=d.get("color_accent", "#8b5cf6"),
+        color_text_primary=d.get("color_text_primary", "#f9fafb"),
+        color_text_secondary=d.get("color_text_secondary", "#9ca3af"),
+        color_text_on_primary=d.get("color_text_on_primary", "#ffffff"),
+        color_text_on_accent=d.get("color_text_on_accent", "#ffffff"),
+    )
+
+
+MEET_SUMMARY_SYSTEM_PROMPT = """You are a high school sports journalist writing brief meet summaries
+for KeepUp, a sports communication platform. Given structured meet data, write a 2–4 sentence
+summary in an energetic but factual sports-journalism tone.
+
+Rules:
+- Lead with the result (winner, score, and whether it was home or away).
+- Call out the margin — note if it was dominant, comfortable, or close.
+- If highlights are provided, name the standout athlete and their performance.
+- End with a brief forward-looking line (season record, upcoming fixture, or positioning).
+- Never invent facts not present in the data. If no highlights are provided, skip that sentence.
+- Write in past tense. No bullet points. Plain prose only.
+
+Respond with a JSON object only — no prose outside the JSON.
+
+JSON schema:
+{
+  "summary": <2–4 sentence narrative string>,
+  "focus_athlete": <name of the single most notable athlete mentioned, or null>,
+  "focus_event": <the event they performed in, or null>
+}"""
+
 
 def _parse_json_response(raw: str) -> dict:
-    """Extract JSON from a model response that may contain surrounding text."""
     raw = raw.strip()
     start = raw.find("{")
     end = raw.rfind("}") + 1
@@ -269,19 +478,14 @@ def _load_image(request: ModerateEmojiRequest) -> Image.Image:
     raise ValueError("Either image_url or image_base64 must be provided")
 
 
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
-
 @app.post("/moderate", response_model=ModerateResponse)
 async def moderate_content(request: ModerateRequest) -> ModerateResponse:
-    """
-    Role 1 — Text content moderation.
+    hit = _slur_prefilter(request.content)
+    if hit:
+        logger.info(f"/moderate slur prefilter triggered for sender_role={request.sender_role}")
+        return hit
 
-    Reference implementation of the on-device Gemma 4 E4B logic that runs in the mobile app.
-    For student message paths, this is called on-device only — never server-side with student content.
-    """
-    if _text_pipeline is None:
+    if _model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     prompt = (
@@ -296,14 +500,7 @@ async def moderate_content(request: ModerateRequest) -> ModerateResponse:
         {"role": "user", "content": prompt},
     ]
 
-    output = _text_pipeline(
-        messages,
-        max_new_tokens=256,
-        do_sample=False,
-        temperature=None,
-        top_p=None,
-    )
-    raw = output[0]["generated_text"][-1]["content"]
+    raw = _generate_text(messages, max_new_tokens=256)
 
     try:
         parsed = _parse_json_response(raw)
@@ -326,12 +523,7 @@ async def moderate_content(request: ModerateRequest) -> ModerateResponse:
 
 @app.post("/analyze_access", response_model=AnalyzeAccessResponse)
 async def analyze_access(request: AnalyzeAccessRequest) -> AnalyzeAccessResponse:
-    """
-    Role 2 — Behavioral anomaly detection on access log patterns.
-    Called server-side by Rails after every access log write (via background job).
-    Analyzes metadata only — no message content is processed here.
-    """
-    if _text_pipeline is None:
+    if _model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     log_summary = _format_access_logs(request.current_log, request.recent_logs)
@@ -341,14 +533,7 @@ async def analyze_access(request: AnalyzeAccessRequest) -> AnalyzeAccessResponse
         {"role": "user", "content": f"Analyze this access pattern:\n\n{log_summary}"},
     ]
 
-    output = _text_pipeline(
-        messages,
-        max_new_tokens=256,
-        do_sample=False,
-        temperature=None,
-        top_p=None,
-    )
-    raw = output[0]["generated_text"][-1]["content"]
+    raw = _generate_text(messages, max_new_tokens=256)
 
     try:
         parsed = _parse_json_response(raw)
@@ -369,12 +554,7 @@ async def analyze_access(request: AnalyzeAccessRequest) -> AnalyzeAccessResponse
 
 @app.post("/moderate_emoji", response_model=ModerateEmojiResponse)
 async def moderate_emoji(request: ModerateEmojiRequest) -> ModerateEmojiResponse:
-    """
-    Role 3 — Multimodal image moderation for sport emoji submissions.
-    Called server-side by Rails when a student submits a custom sport emoji.
-    Gemma pre-filters the image before it enters the human approval queue.
-    """
-    if _vision_model is None or _vision_processor is None:
+    if _model is None or _processor is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     try:
@@ -398,23 +578,23 @@ async def moderate_emoji(request: ModerateEmojiRequest) -> ModerateEmojiResponse
         }
     ]
 
-    inputs = _vision_processor.apply_chat_template(
+    inputs = _processor.apply_chat_template(
         messages,
         add_generation_prompt=True,
         tokenize=True,
         return_dict=True,
         return_tensors="pt",
-    ).to(_vision_model.device)
+    ).to(_model.device)
 
     with torch.inference_mode():
-        output_ids = _vision_model.generate(
+        output_ids = _model.generate(
             **inputs,
             max_new_tokens=256,
             do_sample=False,
         )
 
     input_len = inputs["input_ids"].shape[-1]
-    raw = _vision_processor.decode(output_ids[0][input_len:], skip_special_tokens=True)
+    raw = _processor.decode(output_ids[0][input_len:], skip_special_tokens=True)
 
     try:
         parsed = _parse_json_response(raw)
@@ -435,30 +615,14 @@ async def moderate_emoji(request: ModerateEmojiRequest) -> ModerateEmojiResponse
 
 @app.post("/translate", response_model=TranslateResponse)
 async def translate_content(request: TranslateRequest) -> TranslateResponse:
-    """
-    Role 4 — Coach/AD content translation for multilingual families.
-
-    COPPA boundary: only coach, AD, and school-admin-authored content is sent here.
-    Student message translation runs on-device in the mobile app — never server-side.
-
-    Supported target languages: es (Spanish), zh-CN (Mandarin Chinese Simplified).
-    """
-    if _text_pipeline is None:
+    if _model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
-    if request.target_language not in SUPPORTED_LANGUAGES:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Unsupported language '{request.target_language}'. "
-                   f"Supported: {', '.join(SUPPORTED_LANGUAGES)}"
-        )
-
-    language_name = SUPPORTED_LANGUAGES[request.target_language]
-    source_name   = SUPPORTED_LANGUAGES.get(request.source_language, "English")
+    language_name = request.target_language
     register      = "formal" if request.context == "announcement" else "conversational"
 
     user_prompt = (
-        f"Translate the following {register} {source_name} text into {language_name}.\n\n"
+        f"Translate the following {register} English text into {language_name}.\n\n"
         f"{request.text}"
     )
 
@@ -467,14 +631,7 @@ async def translate_content(request: TranslateRequest) -> TranslateResponse:
         {"role": "user",   "content": user_prompt},
     ]
 
-    output = _text_pipeline(
-        messages,
-        max_new_tokens=1024,
-        do_sample=False,
-        temperature=None,
-        top_p=None,
-    )
-    translated = output[0]["generated_text"][-1]["content"].strip()
+    translated = _generate_text(messages, max_new_tokens=1024).strip()
 
     if not translated:
         logger.error(f"/translate empty output for target={request.target_language}")
@@ -488,9 +645,92 @@ async def translate_content(request: TranslateRequest) -> TranslateResponse:
     )
 
 
-# ---------------------------------------------------------------------------
-# Health check
-# ---------------------------------------------------------------------------
+@app.post("/summarize_meet", response_model=SummarizeMeetResponse)
+async def summarize_meet(request: SummarizeMeetRequest) -> SummarizeMeetResponse:
+    if _model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    home_wins  = request.home_score >= request.away_score
+    winner     = request.home_school if home_wins else request.away_school
+    loser      = request.away_school if home_wins else request.home_school
+    location   = "home" if home_wins else "road"
+    margin     = abs(request.home_score - request.away_score)
+
+    hl_lines = []
+    for h in request.highlights:
+        line = f"{h.athlete} — {h.event}"
+        if h.time:
+            line += f": {h.time}"
+        if h.pr:
+            line += " (PR)"
+        hl_lines.append(line)
+
+    user_prompt = (
+        f"Sport: {request.sport}\n"
+        f"Result: {winner} defeated {loser} {max(request.home_score, request.away_score)}–"
+        f"{min(request.home_score, request.away_score)} ({location} meet, margin: {margin} points)\n"
+    )
+    if request.venue:
+        user_prompt += f"Venue: {request.venue}\n"
+    if request.date:
+        user_prompt += f"Date: {request.date}\n"
+    if hl_lines:
+        user_prompt += "Standout performances:\n" + "\n".join(f"  - {l}" for l in hl_lines) + "\n"
+
+    messages = [
+        {"role": "system", "content": MEET_SUMMARY_SYSTEM_PROMPT},
+        {"role": "user",   "content": user_prompt},
+    ]
+
+    raw = _generate_text(messages, max_new_tokens=512)
+
+    try:
+        parsed = _parse_json_response(raw)
+    except (ValueError, json.JSONDecodeError) as e:
+        logger.error(f"/summarize_meet parse error: {e} | raw: {raw[:300]}")
+        raise HTTPException(status_code=500, detail="Failed to parse model response")
+
+    return SummarizeMeetResponse(
+        summary=parsed.get("summary", "").strip(),
+        focus_athlete=parsed.get("focus_athlete"),
+        focus_event=parsed.get("focus_event"),
+    )
+
+
+@app.post("/generate_theme", response_model=GenerateThemeResponse)
+async def generate_theme(request: GenerateThemeRequest) -> GenerateThemeResponse:
+    if _model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    cache_key = f"{(request.school_name or '').lower()}|{request.school_colors.lower().strip()}"
+    if cache_key in _theme_cache:
+        logger.info(f"/generate_theme cache hit: {cache_key!r}")
+        cached = _theme_cache[cache_key]
+        return GenerateThemeResponse(dark=to_palette(cached.get("dark", {})), light=to_palette(cached.get("light", {})))
+
+    context = f"School: {request.school_name}\n" if request.school_name else ""
+    user_prompt = f"{context}School colors: {request.school_colors}"
+
+    messages = [
+        {"role": "system", "content": THEME_GENERATION_SYSTEM_PROMPT},
+        {"role": "user",   "content": user_prompt},
+    ]
+
+    raw = _generate_text(messages, max_new_tokens=350)
+
+    try:
+        parsed = _parse_json_response(raw)
+    except (ValueError, json.JSONDecodeError) as e:
+        logger.error(f"/generate_theme parse error: {e} | raw: {raw[:300]}")
+        raise HTTPException(status_code=500, detail="Failed to parse model response")
+
+    _theme_cache[cache_key] = parsed
+
+    return GenerateThemeResponse(
+        dark=to_palette(parsed.get("dark", {})),
+        light=to_palette(parsed.get("light", {})),
+    )
+
 
 @app.get("/health")
 async def health():
@@ -498,13 +738,10 @@ async def health():
         "status": "ok",
         "model": MODEL_ID,
         "device": DEVICE,
-        "model_loaded": _text_pipeline is not None,
+        "dtype": str(_DTYPE),
+        "model_loaded": _model is not None,
     }
 
-
-# ---------------------------------------------------------------------------
-# Helpers (continued)
-# ---------------------------------------------------------------------------
 
 def _format_access_logs(current: AccessLogEntry, recent: list[AccessLogEntry]) -> str:
     lines = [

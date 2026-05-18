@@ -47,14 +47,14 @@ class User < ApplicationRecord
   validates :font_size, inclusion: { in: %w[small medium large] }, allow_nil: true
   before_validation { self.font_size = nil if font_size == "default" }
 
-  store_accessor :preferences, :default_district_key
+  store_accessor :preferences, :default_district_key, :name_display
+  validates :name_display, inclusion: { in: %w[first_last first_only first_last_initial] }, allow_nil: true
 
   validates :email, presence: true, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
   validate :theme_available_to_user, if: :theme_id?
   validates :first_name, :last_name, presence: true
   validates :password, length: { minimum: 8 }, allow_blank: true
-  validates :preferred_language,
-            inclusion: { in: Gemma::Translator::SUPPORTED_LANGUAGES.keys, allow_nil: true }
+  validates :preferred_language, length: { maximum: 50 }, allow_nil: true, allow_blank: true
 
   before_validation :normalize_email
 
@@ -65,7 +65,15 @@ class User < ApplicationRecord
   end
 
   def effective_theme
-    theme || Theme.find_by(scope: :system, name: "Default Dark")
+    return theme if theme
+
+    school_id = institution_roles.first&.school_id
+    if school_id
+      Theme.find_by(scope: :school, school_id: school_id, variant: :dark) ||
+        Theme.find_by(scope: :system, name: "Default Dark")
+    else
+      Theme.find_by(scope: :system, name: "Default Dark")
+    end
   end
 
   def soft_delete!

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_18_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -65,25 +65,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
     t.index ["season_id", "occurred_at"], name: "index_activities_on_season_id_and_occurred_at"
     t.index ["season_id"], name: "index_activities_on_season_id"
     t.index ["subject_type", "subject_id"], name: "index_activities_on_subject"
-  end
-
-  create_table "calendar_events", force: :cascade do |t|
-    t.bigint "sport_id", null: false
-    t.bigint "created_by_id", null: false
-    t.string "title", null: false
-    t.integer "event_type", default: 0, null: false
-    t.integer "home_away", default: 0, null: false
-    t.string "location"
-    t.string "opponent"
-    t.datetime "starts_at", null: false
-    t.datetime "ends_at"
-    t.text "notes"
-    t.integer "status", default: 0, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["created_by_id"], name: "index_calendar_events_on_created_by_id"
-    t.index ["sport_id", "starts_at"], name: "index_calendar_events_on_sport_id_and_starts_at"
-    t.index ["sport_id"], name: "index_calendar_events_on_sport_id"
   end
 
   create_table "channel_memberships", force: :cascade do |t|
@@ -175,10 +156,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "flag_category"
+    t.bigint "reply_to_id"
+    t.text "report_notes"
     t.index ["deleted_at"], name: "index_direct_messages_on_deleted_at"
     t.index ["dm_conversation_id", "created_at"], name: "index_direct_messages_on_dm_conversation_id_and_created_at"
     t.index ["dm_conversation_id"], name: "index_direct_messages_on_dm_conversation_id"
     t.index ["flagged"], name: "index_direct_messages_on_flagged"
+    t.index ["reply_to_id"], name: "index_direct_messages_on_reply_to_id"
     t.index ["sender_id"], name: "index_direct_messages_on_sender_id"
   end
 
@@ -348,12 +332,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
     t.datetime "pinned_at"
     t.bigint "pinned_by_id"
     t.string "flag_category"
+    t.datetime "scheduled_at"
+    t.text "report_notes"
+    t.string "broadcast_id"
+    t.index ["broadcast_id"], name: "index_messages_on_broadcast_id"
     t.index ["channel_id", "created_at"], name: "index_messages_on_channel_id_and_created_at"
     t.index ["channel_id"], name: "index_messages_on_channel_id"
     t.index ["deleted_at"], name: "index_messages_on_deleted_at"
     t.index ["flagged"], name: "index_messages_on_flagged"
     t.index ["message_thread_id"], name: "index_messages_on_message_thread_id"
     t.index ["pinned_at"], name: "index_messages_on_pinned_at"
+    t.index ["scheduled_at"], name: "index_messages_on_scheduled_at"
     t.index ["sender_id"], name: "index_messages_on_sender_id"
   end
 
@@ -597,20 +586,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
     t.index ["sport_template_id"], name: "index_sports_on_sport_template_id"
   end
 
-  create_table "team_event_annotations", force: :cascade do |t|
-    t.bigint "calendar_event_id", null: false
-    t.bigint "season_id", null: false
-    t.bigint "updated_by_id", null: false
-    t.datetime "warmup_time"
-    t.text "team_notes"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["calendar_event_id", "season_id"], name: "index_annotations_on_event_and_season", unique: true
-    t.index ["calendar_event_id"], name: "index_team_event_annotations_on_calendar_event_id"
-    t.index ["season_id"], name: "index_team_event_annotations_on_season_id"
-    t.index ["updated_by_id"], name: "index_team_event_annotations_on_updated_by_id"
-  end
-
   create_table "themes", force: :cascade do |t|
     t.string "name", null: false
     t.integer "scope", default: 0, null: false
@@ -678,6 +653,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
     t.jsonb "preferences", default: {}, null: false
     t.string "microsoft_uid"
     t.date "dob"
+    t.string "pronouns"
     t.index ["accessibility"], name: "index_users_on_accessibility", using: :gin
     t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["email"], name: "index_users_on_email", unique: true
@@ -709,8 +685,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
   add_foreign_key "activities", "schools"
   add_foreign_key "activities", "seasons"
   add_foreign_key "activities", "users", column: "actor_id"
-  add_foreign_key "calendar_events", "sports"
-  add_foreign_key "calendar_events", "users", column: "created_by_id"
   add_foreign_key "channel_memberships", "channels"
   add_foreign_key "channel_memberships", "users"
   add_foreign_key "channels", "seasons"
@@ -721,6 +695,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
   add_foreign_key "coop_authorizations", "sports"
   add_foreign_key "coop_authorizations", "users", column: "athletic_director_id"
   add_foreign_key "device_tokens", "users"
+  add_foreign_key "direct_messages", "direct_messages", column: "reply_to_id"
   add_foreign_key "direct_messages", "dm_conversations"
   add_foreign_key "direct_messages", "users", column: "flag_reviewed_by_id"
   add_foreign_key "direct_messages", "users", column: "sender_id"
@@ -784,9 +759,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_14_300004) do
   add_foreign_key "sport_templates", "districts"
   add_foreign_key "sports", "schools"
   add_foreign_key "sports", "sport_templates"
-  add_foreign_key "team_event_annotations", "calendar_events"
-  add_foreign_key "team_event_annotations", "seasons"
-  add_foreign_key "team_event_annotations", "users", column: "updated_by_id"
   add_foreign_key "themes", "schools"
   add_foreign_key "themes", "users", column: "created_by_id"
   add_foreign_key "time_standards", "sport_templates"

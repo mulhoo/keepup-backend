@@ -2,12 +2,13 @@ module Demo
   class ActivitiesController < ApplicationController
     include DemoGuard
     before_action :require_demo_mode
-    before_action :require_activity, only: %i[notify_parents notify_ad notify_district_admin]
+    before_action :require_activity, only: %i[notify_parents notify_ad notify_district_admin delete_message]
 
     def index
       activities = policy_scope(Activity)
+        .where(event_type: %i[message_flagged data_accessed parent_coach_concern])
       activities = activities.where(school_id: params[:school_id].to_i) if params[:school_id].present?
-      activities = activities.limit(50).includes(:actor, :school, season: { sport: :school })
+      activities = activities.order(occurred_at: :desc).limit(50).includes(:actor, :school, season: { sport: :school })
       render json: activities.map { |a| serialize(a) }
     end
 
@@ -62,6 +63,29 @@ module Demo
       }
     end
 
+    def delete_message
+      authorize @activity, :delete_message?
+
+      message = @activity.subject
+      return render json: { error: "Not a message activity" }, status: :unprocessable_entity unless message.is_a?(Message)
+
+      duplicates = Message.where(sender: message.sender, content: message.content, deleted_at: nil)
+      deleted_count = 0
+      duplicates.find_each do |msg|
+        msg.soft_delete!(current_user)
+        deleted_count += 1
+      end
+
+      deleted_at = Time.current.iso8601
+      @activity.update!(metadata: @activity.metadata.merge(
+        "deleted_everywhere_at"    => deleted_at,
+        "deleted_everywhere_by"    => current_user.full_name,
+        "deleted_everywhere_count" => deleted_count
+      ))
+
+      render json: { ok: true, deleted_count: deleted_count, deleted_at: deleted_at }
+    end
+
     def notify_ad
       authorize @activity, :notify_ad?
 
@@ -105,9 +129,12 @@ module Demo
         channel:             m["channel"],
         flag_action:         m["flag_action"],
         flag_reason:         m["flag_reason"],
+        report_notes:        m["report_notes"] || m["note"],
         accessed_user_name:  m["accessed_user_name"],
         school_name:         activity.school&.name || activity.season&.sport&.school&.name,
         accessor_role:       m["accessor_role"],
+        deleted_everywhere_at:      m["deleted_everywhere_at"],
+        deleted_everywhere_count:   m["deleted_everywhere_count"],
         parents_notified_at:        m["parents_notified_at"],
         ad_notified_at:             m["ad_notified_at"],
         ad_notified_name:           m["ad_notified_name"],
@@ -131,6 +158,10 @@ module Demo
         role   = m["accessor_role"]&.humanize || "Staff"
         target = m["accessed_user_name"] || "a student"
         "#{actor} (#{role}) — viewed #{target}'s data"
+      when "parent_coach_concern"
+        parent = m["parent_name"] || activity.actor&.full_name || "A parent"
+        child  = m["child_name"] || "their child"
+        "#{parent} requested review of coach conversation — #{child}"
       end
     end
   end

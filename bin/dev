@@ -1,2 +1,22 @@
-#!/usr/bin/env ruby
-exec "./bin/rails", "server", *ARGV
+#!/usr/bin/env bash
+set -e
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Clear any stale process on port 8000 before starting
+lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+
+if [[ "${GEMMA:-0}" == "1" ]]; then
+  echo "→ Starting Gemma service on :8000"
+  cd "$ROOT/gemma_service"
+  source .venv/bin/activate
+  uvicorn main:app --reload --port 8000 &
+  GEMMA_PID=$!
+  trap "echo '→ Stopping Gemma service'; kill $GEMMA_PID 2>/dev/null; wait $GEMMA_PID 2>/dev/null" EXIT
+  cd "$ROOT"
+else
+  echo "→ Gemma service skipped (run with GEMMA=1 bin/dev to enable)"
+fi
+
+echo "→ Starting Rails server"
+DEMO_MODE=true exec ./bin/rails server "$@"

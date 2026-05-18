@@ -24,17 +24,9 @@ Rails.application.routes.draw do
         delete :remove_commissioner
         patch  :update_levels
       end
-      resources :calendar_events, only: [ :index, :create, :update, :destroy ]
       resources :members, only: [ :update ], param: :user_id, controller: "season_members"
     end
-    resources :calendar_events, only: [] do
-      member do
-        patch :annotate, to: "event_annotations#annotate"
-      end
-    end
     resources :students, only: [ :destroy ]
-    get  "schedule", to: "schedule#index"
-    post "import",   to: "imports#create"
   end
 
   resources :invitations, only: [ :show ], param: :token do
@@ -42,11 +34,12 @@ Rails.application.routes.draw do
   end
 
   namespace :demo do
+    post "reset", to: "resets#create"
     scope "/safety" do
       post "request_code", to: "safety#request_code"
       post "verify",       to: "safety#verify"
       post "end_session",       to: "safety#end_session"
-      get  "chats",             to: "safety#chats"
+      post "chats/search",      to: "safety#chats"
       get  "audit_events",      to: "safety#audit_events"
       post "flag_conversation", to: "safety#flag_conversation"
     end
@@ -63,26 +56,47 @@ Rails.application.routes.draw do
     resources :flagged_messages,        only: [ :index ] do
       member { patch :review }
     end
-    resources :family_groups,           only: [ :index, :create ]
+    resources :family_groups,           only: [ :index, :create ] do
+      member { post :add_members }
+    end
     resources :activities, only: [ :index ] do
       member do
         post :notify_parents
         post :notify_ad
         post :notify_district_admin
+        post :delete_message
       end
     end
+    post "moderate",        to: "moderate#create"
+    get  "themes",          to: "themes#index"
+    post "themes/generate", to: "themes#generate"
+    resources :seasons,          only: [ :index ]
+    resources :dm_conversations, only: [ :index, :create ] do
+      collection do
+        get :startable
+      end
+      member do
+        get  :messages
+        post :send_message
+        post :mark_read
+        post 'messages/:message_id/report', action: :report_dm_message
+      end
+    end
+    get  "users/:id", to: "users#profile"
     resources :channels,      only: [ :index ] do
+      post   :mark_read, on: :member
+      delete :leave,     on: :member
+      resources :members,  only: [ :index, :create ], controller: "channel_members"
       resources :messages, only: [ :index, :create ], shallow: true do
         post :translate, on: :member
+        post :report,    on: :member
+        post :remove,    on: :member
+        post   "reactions/toggle", to: "reactions#toggle"
+        get    :thread,            to: "threads#show"
+        post   :thread,            to: "threads#create"
       end
     end
     resources :schools,              only: [ :index, :show ]
-    resources :commissioner_events,  only: [ :index, :update ] do
-      member { post :notify }
-    end
-    resources :venues, only: [ :index, :create, :update, :destroy ] do
-      member { patch :set_closed }
-    end
     resources :results, only: [ :index, :create ] do
       collection do
         get  :team
@@ -104,6 +118,7 @@ Rails.application.routes.draw do
     get  "linked-accounts/pending", to: "linked_accounts#pending"
     get  "family",                  to: "family#index"
     get  "family/chats",            to: "family#chats"
+    post "coach-conversations/:id/alert_ad", to: "coach_conversations#alert_ad"
     post "message-challenges",                    to: "message_challenges#create"
     patch "message-challenges/:id/uphold",        to: "message_challenges#uphold"
     patch "message-challenges/:id/deny",          to: "message_challenges#deny"

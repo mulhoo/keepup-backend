@@ -1,5 +1,6 @@
 module Demo
-  class QualificationFlagsController < DemoController
+  class QualificationFlagsController < ApplicationController
+    include DemoGuard
     # GET /demo/qualification_flags
     def index
       flags = QualificationFlag.joins(meet_result: :sport)

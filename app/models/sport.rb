@@ -9,7 +9,6 @@ class Sport < ApplicationRecord
   has_many :users, through: :season_memberships
   has_many :sport_emojis, dependent: :destroy
   has_many :access_logs, dependent: :destroy
-  has_many :calendar_events, dependent: :destroy
 
   enum :status, { pending: 0, active: 1, inactive: 2 }
   enum :gender,  { boys: 0, girls: 1, coed: 2 }

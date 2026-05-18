@@ -14,6 +14,10 @@ class InvitationsController < ApplicationController
       return render json: { error: "Password is required" }, status: :unprocessable_entity
     end
 
+    if invitation.role == "student" && invitation.dob.blank?
+      return render json: { error: "Date of birth is required for student accounts" }, status: :unprocessable_entity
+    end
+
     user = nil
 
     ActiveRecord::Base.transaction do
@@ -78,8 +82,16 @@ class InvitationsController < ApplicationController
     inv
   end
 
+  CHANNEL_TYPES_FOR = {
+    "student"          => %w[conversation broadcast athletes_only],
+    "student_captain"  => %w[conversation broadcast athletes_only],
+    "head_coach"       => %w[conversation broadcast coaches_only],
+    "assistant_coach"  => %w[conversation broadcast coaches_only],
+    "parent"           => %w[conversation broadcast],
+  }.freeze
+
   def add_to_channels(user, invitation)
-    eligible = RosterImporter::CHANNEL_TYPES_FOR[invitation.role] || []
+    eligible = CHANNEL_TYPES_FOR[invitation.role] || []
     invitation.season.channels.active.where(channel_type: eligible).each do |channel|
       channel.channel_memberships.find_or_create_by(user: user) { |m| m.role = :member }
     end

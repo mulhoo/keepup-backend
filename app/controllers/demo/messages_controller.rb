@@ -3,24 +3,28 @@ module Demo
     include DemoGuard
     before_action :require_demo_mode
     before_action :require_channel, only: %i[index create]
-    before_action :require_message, only: %i[translate]
+    before_action :require_message, only: %i[translate report remove]
 
     STAFF_SEASON_ROLES = %w[head_coach assistant_coach].freeze
 
     def index
-      messages = visible_messages.order(created_at: :asc).limit(50)
+      messages = visible_messages
+        .includes(:message_thread_as_parent, reactions: :user, sender: [ :institution_roles, :season_memberships ])
+        .order(created_at: :asc).limit(50)
       render json: messages.map { |m| serialize_message(m, current_user) }
     end
 
     def create
       message = @channel.messages.build(sender: current_user, content: params[:content].to_s.strip)
       return render json: { error: "Content can't be blank" }, status: :unprocessable_entity if message.content.blank?
+      return render json: { error: "Content too long" }, status: :unprocessable_entity if message.content.length > 2000
 
       result = moderate(message.content)
       Gemma::ContentModerator.call(message, score: result[:score], reason: result[:reason], category: result[:category])
       message.save!
 
       tier = moderation_tier(message)
+      Rails.logger.info("[Demo::Messages] moderation source=#{result[:source]} score=#{result[:score].round(3)} tier=#{tier} channel=#{@channel.id} message=#{message.id}")
       ModerationNotificationJob.perform_later("Message", message.id, tier) if message.flagged?
       BroadcastMessageJob.perform_later(message.id)
 
@@ -38,18 +42,68 @@ module Demo
       }, status: :created
     end
 
+    def report
+      notes = params[:notes].to_s.strip
+
+      unless @message.flag_action == "blocked"
+        @message.update!(
+          flagged:      true,
+          flag_action:  "held",
+          flag_reason:  @message.flag_reason.presence || "Reported by user",
+          report_notes: notes.presence
+        )
+      else
+        @message.update!(report_notes: notes.presence) if notes.present?
+      end
+
+      ModerationNotificationJob.perform_later("Message", @message.id, "questionable")
+
+      render json: { reported: true, message_id: @message.id }, status: :ok
+    end
+
+    def remove
+      return render json: { error: "Forbidden" }, status: :forbidden unless coach_or_admin?
+
+      return render json: { ok: true, message_id: @message.id } if @message.flag_action == "removed"
+
+      remove_thread = params[:remove_thread] == true || params[:remove_thread] == "true"
+
+      removal_attrs = {
+        flagged:          true,
+        flag_action:      "removed",
+        flag_reviewed:    true,
+        flag_reviewed_by: current_user,
+        flag_reviewed_at: Time.current,
+        flag_reason:      @message.flag_reason.presence || "Removed by coach"
+      }
+
+      ActiveRecord::Base.transaction do
+        targets = if @message.broadcast_id.present?
+          Message.where(broadcast_id: @message.broadcast_id)
+        else
+          Message.where(id: @message.id)
+        end
+
+        targets.where("flag_action IS NULL OR flag_action != 'removed'")
+               .update_all(removal_attrs.merge(flag_reviewed_by_id: current_user.id).except(:flag_reviewed_by))
+
+        if remove_thread && (thread = @message.message_thread_as_parent)
+          thread.messages.each do |reply|
+            reply.update!(removal_attrs.merge(flag_reason: "Thread removed by coach"))
+          end
+        end
+      end
+
+      render json: { removed: true, message_id: @message.id }, status: :ok
+    end
+
     def translate
       target_language = current_user.preferred_language
 
       if target_language.blank?
-        return render json: {
-          error:               "No preferred language set on your account.",
-          supported_languages: Gemma::Translator::SUPPORTED_LANGUAGES
-        }, status: :unprocessable_entity
+        return render json: { error: "No preferred language set on your account." }, status: :unprocessable_entity
       end
 
-      # Student-authored content is translated on-device by Gemma in the mobile app.
-      # The web demo can't run Gemma locally, so we explain what happens instead.
       unless staff_authored?(@message)
         return render json: {
           message_id:      @message.id,
@@ -60,7 +114,6 @@ module Demo
         }
       end
 
-      # Serve from cache if already translated into this language
       cached = @message.message_translations.find_by(language: target_language)
       if cached
         return render json: translation_response(@message, cached.translated_text, target_language, from_cache: true)
@@ -84,6 +137,15 @@ module Demo
       render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
     end
 
+    def coach_or_admin?
+      return true if current_user.institution_roles.exists?
+      season = @message.channel&.season
+      return false unless season
+      current_user.season_memberships.active
+        .where(season: season, role: %w[head_coach assistant_coach])
+        .exists?
+    end
+
     def require_channel
       @channel = Channel.active.find_by(id: params[:channel_id])
       return render json: { error: "Channel not found" }, status: :not_found unless @channel
@@ -96,17 +158,25 @@ module Demo
       render json: { error: "Not authorized" }, status: :forbidden unless @message.channel.viewable_by?(current_user)
     end
 
+    def sender_role_for(msg)
+      sender = msg.sender
+      # institution_roles and season_memberships are eager-loaded — use Ruby finders to avoid N+1
+      inst = sender.institution_roles.min_by(&:id)
+      return inst.role if inst
+      sm = sender.season_memberships.find { |m| m.season_id == @channel.season_id }
+      return nil unless sm
+      sm.student? && sm.is_captain? ? "student_captain" : sm.role
+    end
+
     def staff_authored?(message)
       sender = message.sender
-      return true if sender.institution_roles.exists?
-
-      season = message.channel.season
-      role   = sender.season_memberships.find_by(season:)&.role
-      STAFF_SEASON_ROLES.include?(role)
+      return true if sender.institution_roles.any?
+      sm = sender.season_memberships.find { |m| m.season_id == @channel.season_id }
+      STAFF_SEASON_ROLES.include?(sm&.role)
     end
 
     def translation_response(message, translated_text, target_language, language_name: nil, from_cache: false)
-      language_name ||= Gemma::Translator::SUPPORTED_LANGUAGES[target_language]
+      language_name ||= target_language
       {
         message_id:      message.id,
         original_text:   message.content,
@@ -118,11 +188,23 @@ module Demo
     end
 
     def moderate(content)
-      sport              = @channel.season&.sport
-      sport_template_id  = sport&.sport_template_id
-      school_id          = sport&.school_id
+      sport             = @channel.season&.sport
+      sport_template_id = sport&.sport_template_id
+      school_id         = sport&.school_id
 
-      response = GemmaClient.post("/moderate", { content:, context: "demo", sport_template_id: })
+      inst = current_user.institution_roles.min_by(&:id)
+      sender_role = if inst
+        inst.role.to_s
+      else
+        current_user.season_memberships.find_by(season_id: @channel.season_id)&.role.to_s
+      end
+
+      # COPPA/FERPA: student content stays on-device
+      if sender_role == "student"
+        return Demo::KeywordModerator.score(content, sport_template_id:, school_id:).merge(source: "keyword_fallback")
+      end
+
+      response = GemmaClient.post("/moderate", { content:, sender_role: })
       { score: response[:score].to_f, reason: response[:reason], category: response[:category], source: "gemma4" }
     rescue GemmaClient::ServiceUnavailable
       Demo::KeywordModerator.score(content, sport_template_id:, school_id:).merge(source: "keyword_fallback")
@@ -146,32 +228,53 @@ module Demo
     end
 
     def visible_messages(scope = @channel.messages)
-      # Severe (blocked) messages never deliver. Questionable (held) messages
-      # deliver normally — the review queue exists only to train Gemma.
-      scope.where(deleted_at: nil).where.not(flag_action: "blocked")
+      # flag_action is NULL for clear messages, "held" for questionable, "blocked" for severe.
+      # SQL: flag_action != 'blocked' does NOT include NULLs, so we need an explicit IS NULL check.
+      scope.where(deleted_at: nil)
+           .where("flag_action IS NULL OR flag_action NOT IN ('blocked')")
+           .where(message_thread_id: nil)
+    end
+
+    def display_name_for(user, role)
+      return user.full_name unless %w[student student_captain].include?(role)
+
+      case user.name_display
+      when "first_only"         then user.first_name
+      when "first_last_initial" then "#{user.first_name} #{user.last_name[0]}."
+      else user.full_name
+      end
     end
 
     def serialize_message(msg, viewer)
       is_sender = msg.sender_id == viewer.id
       blocked   = msg.flag_action == "blocked"
+      role      = sender_role_for(msg)
+
+      reactions = msg.reactions.group_by(&:emoji).map do |emoji, rxns|
+        { emoji: emoji, count: rxns.size, reacted: rxns.any? { |r| r.user_id == viewer.id }, users: rxns.map { |r| r.user.first_name } }
+      end
+
       {
         id:               msg.id,
         content:          display_content(msg, is_sender),
-        sender:           msg.sender.full_name,
+        sender:           display_name_for(msg.sender, role),
         sender_id:        msg.sender_id,
+        sender_role:      role,
+        sender_pronouns:  msg.sender.pronouns.presence,
         flag_action:      msg.flag_action,
         flagged:          msg.flagged,
         created_at:       msg.created_at.iso8601,
         indicator:        flag_indicator(msg, is_sender),
         translatable:     !blocked,
-        translation_path: blocked ? nil : (staff_authored?(msg) ? "server" : "on_device")
+        translation_path: blocked ? nil : (staff_authored?(msg) ? "server" : "on_device"),
+        reactions:        reactions,
+        reply_count:      msg.message_thread_as_parent&.reply_count || 0
       }
     end
 
     def display_content(msg, is_sender)
-      # Severe: sender sees a notice, everyone else sees nothing.
-      # Questionable: message delivers to everyone; mobile shows a flag icon via `flagged`.
       return (is_sender ? "[Your message was blocked 🚫]" : nil) if msg.flag_action == "blocked"
+      return nil if msg.flag_action == "removed"
       msg.content
     end
 

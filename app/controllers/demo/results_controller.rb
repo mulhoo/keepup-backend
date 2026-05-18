@@ -1,18 +1,26 @@
 module Demo
-  class ResultsController < DemoController
-    before_action :require_coach_or_commissioner, only: [ :create ]
-    before_action :require_commissioner, only: [ :approve ]
+  class ResultsController < ApplicationController
+    include DemoGuard
+    before_action :require_coach, only: [ :create, :confirm, :approve ]
 
     # GET /demo/results — all results for commissioner or coach's sports
     def index
-      results = MeetResult.includes(:home_school, :away_school, :uploaded_by)
-        .order(date: :desc)
-      render json: results.map { |r| serialize(r) }
+      school_ids = accessible_school_ids
+      results = if school_ids.nil?
+        MeetResult.all
+      else
+        MeetResult.where(home_school_id: school_ids).or(MeetResult.where(away_school_id: school_ids))
+      end
+      render json: results.includes(:home_school, :away_school, :uploaded_by).order(date: :desc).map { |r| serialize(r) }
     end
 
     # GET /demo/results/team?school_id=N
     def team
       school_id = params[:school_id].to_i
+      ids = accessible_school_ids
+      if ids && !ids.include?(school_id)
+        return render json: { error: "Forbidden" }, status: :forbidden
+      end
       results = MeetResult.where(home_school_id: school_id)
         .or(MeetResult.where(away_school_id: school_id))
         .includes(:home_school, :away_school, :uploaded_by)
@@ -48,14 +56,16 @@ module Demo
 
     # PATCH /demo/results/:id/confirm — away team confirms score
     def confirm
-      result = MeetResult.find(params[:id])
+      result = find_accessible_result
+      return unless result
       result.update!(status: "pending_commissioner")
       render json: serialize(result)
     end
 
     # PATCH /demo/results/:id/approve — commissioner publishes and auto-generates qual flags
     def approve
-      result = MeetResult.find(params[:id])
+      result = find_accessible_result
+      return unless result
       result.update!(status: "published")
       generate_qual_flags(result)
       render json: serialize(result)
@@ -68,29 +78,30 @@ module Demo
       home_score  = params[:home_score].to_i
       away_score  = params[:away_score].to_i
       highlights  = Array(params[:highlights])
-
-      home_wins  = home_score >= away_score
-      winner     = home_wins ? home_school : away_school
-      loser      = home_wins ? away_school : home_school
-      win_score  = [ home_score, away_score ].max
-      lose_score = [ home_score, away_score ].min
-      margin     = win_score - lose_score
-
-      hl_line = highlights
         .select { |h| h[:athlete].present? && h[:event].present? }
-        .map { |h| "#{h[:athlete]} posted #{h[:time]} in the #{h[:event]}#{h[:pr] ? " (PR)" : ""}" }
-        .join("; ")
-      hl_line = " #{hl_line}." if hl_line.present?
+        .map { |h| { athlete: h[:athlete], event: h[:event], time: h[:time], pr: h[:pr] } }
+      sport = Sport.find_by(id: params[:sport_id])&.name.to_s
 
-      summary = if margin >= 30
-        "#{winner} delivered a dominant #{home_wins ? "home" : "road"} performance, winning #{win_score}–#{lose_score} over #{loser}.#{hl_line} The team showed strength across relay events and outscored #{loser} in the majority of individual events. Solid preparation heading into the upcoming qualifier."
-      elsif margin <= 14
-        "A closely contested #{home_wins ? "home" : "road"} win for #{winner}, #{win_score}–#{lose_score} over #{loser}. Both teams produced competitive splits throughout, with the margin decided in the final relay events.#{hl_line} The return fixture should be closely contested."
-      else
-        "#{winner} took a #{home_wins ? "home" : "road"} win #{win_score}–#{lose_score} over #{loser}. The team showed consistent performance across individual events with relay times tracking above season average.#{hl_line} Good mid-season positioning heading into the qualifier."
+      begin
+        response = GemmaClient.post("/summarize_meet", {
+          sport:        sport,
+          home_school:  home_school,
+          away_school:  away_school,
+          home_score:   home_score,
+          away_score:   away_score,
+          venue:        params[:venue],
+          date:         params[:date],
+          highlights:   highlights,
+        })
+        render json: {
+          summary:       response[:summary],
+          focus_athlete: response[:focus_athlete],
+          focus_event:   response[:focus_event],
+          source:        "gemma4",
+        }
+      rescue GemmaClient::ServiceUnavailable
+        render json: { summary: template_summary(home_school, away_school, home_score, away_score, highlights), source: "template" }
       end
-
-      render json: { summary: }
     end
 
     # POST /demo/results/parse_pdf — stub; production would run Claude on the PDF bytes
@@ -108,20 +119,36 @@ module Demo
 
     private
 
-    def require_coach_or_commissioner
-      unless current_user_role.in?(%w[head_coach assistant_coach commissioner super_admin district_admin])
+    def require_coach
+      roles = current_user.institution_roles.pluck(:role).map(&:to_s)
+      season_roles = current_user.season_memberships.active.pluck(:role).map(&:to_s)
+      all_roles = roles | season_roles
+      unless (all_roles & %w[head_coach assistant_coach athletic_director school_admin district_admin super_admin]).any?
         render json: { error: "Forbidden" }, status: :forbidden
       end
     end
 
-    def require_commissioner
-      unless current_user_role.in?(%w[commissioner super_admin district_admin])
-        render json: { error: "Forbidden" }, status: :forbidden
-      end
+    def accessible_school_ids
+      roles = current_user.institution_roles.to_a
+      return nil if roles.any? { |r| %w[super_admin district_admin].include?(r.role.to_s) }
+
+      ids  = roles.filter_map(&:school_id)
+      ids += current_user.season_memberships.active.joins(season: :sport).pluck("sports.school_id")
+      ids.uniq
     end
 
-    def current_user_role
-      current_user.institution_roles.first&.role.to_s
+    def find_accessible_result
+      result = MeetResult.find_by(id: params[:id])
+      unless result
+        render json: { error: "Not found" }, status: :not_found
+        return nil
+      end
+      ids = accessible_school_ids
+      unless ids.nil? || ids.include?(result.home_school_id) || (result.away_school_id && ids.include?(result.away_school_id))
+        render json: { error: "Forbidden" }, status: :forbidden
+        return nil
+      end
+      result
     end
 
     def serialize(r)
@@ -176,6 +203,29 @@ module Demo
             end
           end
         end
+      end
+    end
+
+    def template_summary(home_school, away_school, home_score, away_score, highlights)
+      home_wins  = home_score >= away_score
+      winner     = home_wins ? home_school : away_school
+      loser      = home_wins ? away_school : home_school
+      win_score  = [ home_score, away_score ].max
+      lose_score = [ home_score, away_score ].min
+      margin     = win_score - lose_score
+      location   = home_wins ? "home" : "road"
+
+      hl_line = highlights
+        .map { |h| "#{h[:athlete]} posted #{h[:time]} in the #{h[:event]}#{h[:pr] ? " (PR)" : ""}" }
+        .join("; ")
+      hl_line = " #{hl_line}." if hl_line.present?
+
+      if margin >= 30
+        "#{winner} delivered a dominant #{location} performance, winning #{win_score}–#{lose_score} over #{loser}.#{hl_line} The team showed strength across relay events and outscored #{loser} in the majority of individual events."
+      elsif margin <= 14
+        "A closely contested #{location} win for #{winner}, #{win_score}–#{lose_score} over #{loser}. Both teams produced competitive splits, with the margin decided in the final relay events.#{hl_line}"
+      else
+        "#{winner} took a #{location} win #{win_score}–#{lose_score} over #{loser}.#{hl_line} Consistent performance across individual events with relay times tracking above season average."
       end
     end
 

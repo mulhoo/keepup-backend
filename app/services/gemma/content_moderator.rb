@@ -17,19 +17,19 @@ module Gemma
     def self.questionable_threshold = thresholds[:questionable].to_f
     def self.severe_threshold       = thresholds[:severe].to_f
 
-    Result = Data.define(:tier, :flagged, :blocked, :score, :reason)
+    Result = Data.define(:tier, :flagged, :blocked, :score, :reason, :category)
 
     # Used by the private/production path where mobile sends an explicit flagged signal.
-    def self.apply(message:, score:, flagged:, reason: nil)
-      new.call(message, score: score, flagged: flagged, reason: reason)
+    def self.apply(message:, score:, flagged:, reason: nil, category: nil)
+      new.call(message, score: score, flagged: flagged, reason: reason, category: category)
     end
 
     # Used by the demo path and the private-repo mutations where flagged is derived from score.
-    def self.call(message, score:, reason: nil, flagged: nil)
-      new.call(message, score: score, reason: reason, flagged: flagged)
+    def self.call(message, score:, reason: nil, category: nil, flagged: nil)
+      new.call(message, score: score, reason: reason, category: category, flagged: flagged)
     end
 
-    def call(message, score:, reason: nil, flagged: nil)
+    def call(message, score:, reason: nil, category: nil, flagged: nil)
       score = score.to_f
       tier  = classify(score, flagged)
 
@@ -37,10 +37,11 @@ module Gemma
         moderation_score: score,
         flagged:          tier != "clear",
         flag_reason:      reason,
+        flag_category:    category,
         flag_action:      flag_action_for(tier)
       )
 
-      Result.new(tier: tier, flagged: tier != "clear", blocked: tier == "severe", score: score, reason: reason)
+      Result.new(tier: tier, flagged: tier != "clear", blocked: tier == "severe", score: score, reason: reason, category: category)
     end
 
     private

@@ -11,10 +11,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
+ARG GEMMA_MODEL_ID=google/gemma-4-E4B-it
+ENV HF_HOME=/app/hf_cache
+RUN python -c "\
+from huggingface_hub import snapshot_download; \
+snapshot_download('${GEMMA_MODEL_ID}')"
 
-ENV GEMMA_MODEL_ID=google/gemma-3-4b-it
+COPY main.py auto_flags.py ./
+
+ENV GEMMA_MODEL_ID=google/gemma-4-E4B-it
 ENV PORT=8000
+# Never download from HuggingFace at runtime — use the baked-in weights
+ENV TRANSFORMERS_OFFLINE=1
+ENV HF_HUB_OFFLINE=1
 
 EXPOSE $PORT
 

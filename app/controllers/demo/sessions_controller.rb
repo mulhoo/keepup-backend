@@ -1,18 +1,21 @@
 module Demo
-  class SessionsController < ApplicationController
-    skip_before_action :require_authentication
+  class SessionsController < Demo::ApplicationController
     before_action :require_demo_mode
 
     DEMO_ACCOUNTS = {
-      "district_admin"    => "admin@hsd.edu",
-      "school_admin"      => "schooladmin@ahs.edu",
-      "athletic_director" => "ad@ahs.edu",
-      "head_coach"        => "coach.swim@ahs.edu",
-      "assistant_coach"   => "asst.swim@ahs.edu",
-      "student_captain"   => "captain@ahs.student.edu",
-      "student"           => "student1@ahs.student.edu",
-      "parent"            => "parent1@example.com"
+      "district_admin"      => "admin@hsd.edu",
+      "school_admin"        => "schooladmin@ahs.edu",
+      "athletic_director"   => "ad@ahs.edu",
+      "head_coach"     => "coach.swim@ahs.edu",
+      "assistant_coach"=> "asst.swim@ahs.edu",
+      "student"        => "student1@ahs.student.edu",
+      "parent"              => "parent1@example.com"
     }.freeze
+
+    def destroy
+      clear_auth_cookie
+      head :no_content
+    end
 
     def create
       role  = params[:role].to_s
@@ -28,30 +31,28 @@ module Demo
       user = User.active.find_by(email: email)
       return render json: { error: "Demo account not found — run db:seed first" }, status: :not_found unless user
 
+      token = generate_demo_token(user)
       render json: {
-        token: generate_demo_token(user),
-        expires_in: 3600,
-        demo: true,
-        role: role,
+        demo:  true,
+        role:  role,
+        token: token,
         user: {
           id:            user.id,
           first_name:    user.first_name,
           last_name:     user.last_name,
           email:         user.email,
-          accessibility: user.accessibility,
+          theme:         user.effective_theme&.color_palette,
+          accessibility: user.accessibility
         }
       }
     end
 
     private
 
-    def require_demo_mode
-      render json: { error: "Not found" }, status: :not_found unless Rails.application.config.demo_mode
-    end
-
     def generate_demo_token(user)
       payload = {
         sub:  user.id,
+        jti:  SecureRandom.uuid,
         demo: true,
         role: params[:role],
         exp:  1.hour.from_now.to_i,

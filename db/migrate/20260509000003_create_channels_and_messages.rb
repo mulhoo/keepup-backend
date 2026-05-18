@@ -26,7 +26,7 @@ class CreateChannelsAndMessages < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :channel_memberships, [:channel_id, :user_id], unique: true
+    add_index :channel_memberships, [ :channel_id, :user_id ], unique: true
     add_index :channel_memberships, :user_id
 
     # A thread lives inside a channel, anchored to a parent message.
@@ -57,11 +57,11 @@ class CreateChannelsAndMessages < ActiveRecord::Migration[8.0]
       t.boolean :flag_reviewed, default: false, null: false
       t.bigint  :flag_reviewed_by_id
       t.datetime :flag_reviewed_at
-      t.string  :flag_action                  # dismissed, removed, escalated
+      t.string :flag_action                  # dismissed, removed, escalated
 
       # Soft delete — data is never hard-deleted
       t.datetime :deleted_at
-      t.bigint  :deleted_by_id
+      t.bigint :deleted_by_id
 
       t.timestamps
     end
@@ -71,7 +71,7 @@ class CreateChannelsAndMessages < ActiveRecord::Migration[8.0]
     add_index :messages, :sender_id
     add_index :messages, :flagged
     add_index :messages, :deleted_at
-    add_index :messages, [:channel_id, :created_at]
+    add_index :messages, [ :channel_id, :created_at ]
 
     create_table :reactions do |t|
       t.bigint :message_id, null: false
@@ -80,7 +80,7 @@ class CreateChannelsAndMessages < ActiveRecord::Migration[8.0]
       t.timestamps
     end
 
-    add_index :reactions, [:message_id, :user_id, :emoji], unique: true
+    add_index :reactions, [ :message_id, :user_id, :emoji ], unique: true
     add_index :reactions, :user_id
 
     add_foreign_key :channels, :sports

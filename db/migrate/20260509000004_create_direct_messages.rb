@@ -12,7 +12,7 @@ class CreateDirectMessages < ActiveRecord::Migration[8.0]
     end
 
     add_index :dm_conversations,
-              [:participant_a_id, :participant_b_id, :sport_id],
+              [ :participant_a_id, :participant_b_id, :sport_id ],
               unique: true,
               name: "index_dm_conversations_unique"
     add_index :dm_conversations, :participant_b_id
@@ -31,7 +31,7 @@ class CreateDirectMessages < ActiveRecord::Migration[8.0]
       t.boolean :flag_reviewed, default: false, null: false
       t.bigint  :flag_reviewed_by_id
       t.datetime :flag_reviewed_at
-      t.string  :flag_action   # dismissed, removed, escalated
+      t.string :flag_action   # dismissed, removed, escalated
 
       # Soft delete only — data persists for audit trail
       t.datetime :deleted_at
@@ -43,7 +43,7 @@ class CreateDirectMessages < ActiveRecord::Migration[8.0]
     add_index :direct_messages, :sender_id
     add_index :direct_messages, :flagged
     add_index :direct_messages, :deleted_at
-    add_index :direct_messages, [:dm_conversation_id, :created_at]
+    add_index :direct_messages, [ :dm_conversation_id, :created_at ]
 
     add_foreign_key :dm_conversations, :users, column: :participant_a_id
     add_foreign_key :dm_conversations, :users, column: :participant_b_id

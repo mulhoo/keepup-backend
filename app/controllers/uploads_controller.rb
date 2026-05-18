@@ -6,7 +6,7 @@ class UploadsController < ApplicationController
   MAX_FILE_SIZE         = 5.megabytes.to_i
   PRESIGN_TTL           = 300 # seconds
 
-  RESOURCE_TYPES = %w[school_icon school_banner profile_photo sport_emoji].freeze
+  RESOURCE_TYPES = %w[school_icon school_banner profile_photo sport_emoji sport_banner].freeze
 
   def presign
     resource_type = params.require(:resource_type)
@@ -26,19 +26,17 @@ class UploadsController < ApplicationController
     return render json: { error: "Not found" }, status: :not_found unless record
 
     policy = UploadPolicy.new(current_user, record)
-    action = :"#{resource_type}?"
-    raise Pundit::NotAuthorizedError unless policy.public_send(action)
+    raise Pundit::NotAuthorizedError unless policy.public_send(:"#{resource_type}?")
 
     key = S3KeyBuilder.build(resource_type:, record:, filename:)
     return render json: { error: "Could not generate upload path" }, status: :unprocessable_entity unless key
 
     presigned_url = presigner.presigned_url(
       :put_object,
-      bucket:         bucket_name,
+      bucket:      bucket_name,
       key:,
-      expires_in:     PRESIGN_TTL,
-      content_type:,
-      content_length_range: 1..MAX_FILE_SIZE
+      expires_in:  PRESIGN_TTL,
+      content_type:
     )
 
     render json: {
@@ -54,7 +52,7 @@ class UploadsController < ApplicationController
     case resource_type
     when "school_icon", "school_banner" then School.find_by(id: resource_id)
     when "profile_photo"                then User.active.find_by(id: resource_id)
-    when "sport_emoji"                  then Sport.find_by(id: resource_id)
+    when "sport_emoji", "sport_banner"  then Sport.find_by(id: resource_id)
     end
   end
 
@@ -63,20 +61,17 @@ class UploadsController < ApplicationController
   end
 
   def s3_client
-    @s3_client ||= Aws::S3::Client.new(
-      region:      aws_region,
-      credentials: Aws::Credentials.new(
-        Rails.application.credentials.dig(:aws, :access_key_id),
-        Rails.application.credentials.dig(:aws, :secret_access_key)
-      )
-    )
+    # Uses the SDK credential chain — no explicit keys needed:
+    #   - Local dev: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY from .env
+    #   - ECS production: IAM task role via instance metadata (no keys anywhere)
+    @s3_client ||= Aws::S3::Client.new(region: aws_region)
   end
 
   def bucket_name
-    @bucket_name ||= Rails.application.credentials.dig(:aws, :s3_bucket)
+    @bucket_name ||= ENV.fetch("S3_BUCKET")
   end
 
   def aws_region
-    @aws_region ||= Rails.application.credentials.dig(:aws, :region) || "us-east-1"
+    @aws_region ||= ENV.fetch("AWS_REGION", "us-east-2")
   end
 end

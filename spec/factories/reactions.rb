@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :reaction do
     user
     message
-    emoji { ["👍", "❤️", "😂", "🔥", "👏"].sample }
+    emoji { [ "👍", "❤️", "😂", "🔥", "👏" ].sample }
     direct_message { nil }
     sport_emoji    { nil }
 

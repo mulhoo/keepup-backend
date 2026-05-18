@@ -7,7 +7,7 @@ class Channel < ApplicationRecord
   has_many :messages, dependent: :destroy
   has_many :message_threads, dependent: :destroy
 
-  enum :channel_type, { conversation: 0, broadcast: 1, athletes_only: 2, coaches_only: 3 }
+  enum :channel_type, { conversation: 0, broadcast: 1, athletes_only: 2, coaches_only: 3, family_group: 4 }
 
   validates :name, :channel_type, presence: true
   validates :season, :created_by, presence: true
@@ -27,13 +27,21 @@ class Channel < ApplicationRecord
   end
 
   def viewable_by?(user)
+    # ADs have no season memberships; their access comes from explicit channel membership.
+    if user.institution_roles.athletic_director.exists?
+      return channel_memberships.exists?(user_id: user.id)
+    end
+
     membership = user.season_memberships.active.find_by(season:)
     return false unless membership
 
     case channel_type
-    when "coaches_only"  then membership.role.in?(%w[head_coach assistant_coach])
-    when "athletes_only" then membership.role.in?(%w[student head_coach assistant_coach])
-    else true
+    when "coaches_only"        then membership.role.in?(%w[head_coach assistant_coach])
+    when "athletes_only"       then membership.role.in?(%w[student]) || channel_memberships.exists?(user_id: user.id)
+    when "family_group"        then channel_memberships.exists?(user_id: user.id)
+    when "conversation",
+         "broadcast"           then channel_memberships.exists?(user_id: user.id)
+    else false
     end
   end
 

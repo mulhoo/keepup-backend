@@ -152,7 +152,7 @@ GEM
       reline (>= 0.4.2)
     jmespath (1.6.2)
     json (2.19.5)
-    jwt (2.10.2)
+    jwt (3.1.2)
       base64
     kamal (2.11.0)
       activesupport (>= 7.0)
@@ -371,6 +371,7 @@ GEM
 PLATFORMS
   aarch64-linux
   arm64-darwin-24
+  arm64-darwin-25
   x86_64-linux
 
 DEPENDENCIES
@@ -384,7 +385,7 @@ DEPENDENCIES
   factory_bot_rails
   faker
   graphql (~> 2.3)
-  jwt (~> 2.8)
+  jwt (~> 3.1)
   kamal
   noticed (~> 2.0)
   pg (~> 1.1)

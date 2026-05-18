@@ -10,9 +10,13 @@ shared:
 
 development:
   service_url: "<%= ENV.fetch('GEMMA_SERVICE_URL', 'http://localhost:8000') %>"
+  moderation:
+    timeout_seconds: 120
 
 test:
   service_url: "http://localhost:8000"
 
 production:
   service_url: "<%= ENV['GEMMA_SERVICE_URL'] %>"
+  moderation:
+    timeout_seconds: 120

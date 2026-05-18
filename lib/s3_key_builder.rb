@@ -16,12 +16,15 @@ module S3KeyBuilder
       "#{school_prefix(school)}/users/#{record.id}/avatar#{ext}"
     when "sport_emoji"
       "#{sport_prefix(record)}/emojis/#{SecureRandom.hex(8)}#{ext}"
+    when "sport_banner"
+      "#{sport_prefix(record)}/banner#{ext}"
     end
   end
 
   def self.school_prefix(school)
     d = school.district
-    "#{slug(d.state)}/#{slug(d.name)}/#{slug(school.name)}"
+    district_key = d.subdomain.presence || slug(d.name)
+    "#{district_key}/#{slug(school.name)}"
   end
 
   def self.sport_prefix(sport)

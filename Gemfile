@@ -8,7 +8,7 @@ gem "pg", "~> 1.1"
 gem "puma", ">= 5.0"
 
 gem "bcrypt", "~> 3.1.7"
-gem "jwt", "~> 2.8"
+gem "jwt", "~> 3.1"
 gem "rack-cors"
 gem "graphql", "~> 2.3"
 gem "pundit", "~> 2.3"
@@ -32,7 +32,7 @@ gem "kamal", require: false
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
-gem "dotenv-rails", groups: [:development, :test]
+gem "dotenv-rails", groups: [ :development, :test ]
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"

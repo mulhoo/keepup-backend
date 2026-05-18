@@ -29,10 +29,10 @@ class CreateAuditTrail < ActiveRecord::Migration[8.0]
 
     add_index :access_logs, :accessor_id
     add_index :access_logs, :accessed_user_id
-    add_index :access_logs, [:resource_type, :resource_id]
+    add_index :access_logs, [ :resource_type, :resource_id ]
     add_index :access_logs, :anomaly_flagged
-    add_index :access_logs, [:accessor_id, :created_at]           # time-window queries
-    add_index :access_logs, [:accessed_user_id, :created_at]      # pattern detection
+    add_index :access_logs, [ :accessor_id, :created_at ]           # time-window queries
+    add_index :access_logs, [ :accessed_user_id, :created_at ]      # pattern detection
 
     # One notification per access log, sent to the supervisor immediately above
     # the accessor in the hierarchy.
@@ -45,7 +45,7 @@ class CreateAuditTrail < ActiveRecord::Migration[8.0]
 
     add_index :access_notifications, :notified_user_id
     add_index :access_notifications, :access_log_id
-    add_index :access_notifications, [:notified_user_id, :read_at]
+    add_index :access_notifications, [ :notified_user_id, :read_at ]
 
     add_foreign_key :access_logs, :users, column: :accessor_id
     add_foreign_key :access_logs, :users, column: :accessed_user_id

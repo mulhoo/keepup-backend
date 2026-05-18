@@ -6,7 +6,7 @@ class SportCommissionership < ApplicationRecord
 
   enum :status, { active: 0, inactive: 1 }
 
-  validates :user_id, uniqueness: { scope: [:sport_template_id, :district_id] }
+  validates :user_id, uniqueness: { scope: [ :sport_template_id, :district_id ] }
   validates :status, presence: true
 
   scope :active, -> { where(status: :active) }

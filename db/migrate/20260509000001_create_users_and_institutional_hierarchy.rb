@@ -9,7 +9,7 @@ class CreateUsersAndInstitutionalHierarchy < ActiveRecord::Migration[8.0]
       t.string :profile_photo_url
 
       # Invite-only onboarding
-      t.string  :invitation_token
+      t.string :invitation_token
       t.datetime :invitation_sent_at
       t.datetime :invitation_accepted_at
       t.bigint  :invited_by_id
@@ -56,7 +56,7 @@ class CreateUsersAndInstitutionalHierarchy < ActiveRecord::Migration[8.0]
     end
 
     add_index :schools, :district_id
-    add_index :schools, [:district_id, :name], unique: true
+    add_index :schools, [ :district_id, :name ], unique: true
 
     # Roles scoped to an institution (district or school).
     # district_admin / dpa_contact -> district_id set, school_id null
@@ -74,7 +74,7 @@ class CreateUsersAndInstitutionalHierarchy < ActiveRecord::Migration[8.0]
     add_index :institution_roles, :district_id
     add_index :institution_roles, :school_id
     add_index :institution_roles,
-              [:user_id, :role, :district_id, :school_id],
+              [ :user_id, :role, :district_id, :school_id ],
               unique: true,
               name: "index_institution_roles_unique"
 

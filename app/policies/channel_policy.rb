@@ -5,24 +5,23 @@ class ChannelPolicy < ApplicationPolicy
 
   class Scope < ApplicationPolicy::Scope
     def resolve
-      return scope.active if admin?
+      inst_role = user.institution_roles.find_by(
+        role: InstitutionRole::MANAGEABLE_BY.keys + [ "super_admin" ]
+      )
 
-      visible_season_ids = coaching_season_ids
-      scope.active.where(season_id: visible_season_ids)
+      if inst_role
+        return scope.active if inst_role.super_admin? || inst_role.district_id.present?
+        return scope.active.joins(season: { sport: :school })
+                           .where(schools: { id: inst_role.school_id })
+      end
+
+      scope.active.where(season_id: coaching_season_ids)
     end
 
     private
 
-    # Athletic directors and school admins see all channels
-    def admin?
-      user.institution_roles.exists?
-    end
-
-    # Head coaches can see all seasons they coach (head or assistant).
-    # Assistant-only coaches can only see their assistant_coach seasons.
     def coaching_season_ids
       memberships = user.season_memberships.active
-
       if memberships.head_coach.exists?
         memberships.where(role: %i[head_coach assistant_coach]).pluck(:season_id)
       else
@@ -34,18 +33,29 @@ class ChannelPolicy < ApplicationPolicy
   private
 
   def viewable?
-    return true if user.institution_roles.exists?
+    inst_role = user.institution_roles.find_by(
+      role: InstitutionRole::MANAGEABLE_BY.keys + [ "super_admin" ]
+    )
+    if inst_role
+      return true if inst_role.super_admin? || inst_role.district_id.present?
+      return record.season.sport.school_id == inst_role.school_id
+    end
 
     sm = user.season_memberships.active.find_by(season: record.season)
     return false unless sm
     return true if sm.head_coach? || sm.assistant_coach?
 
-    # Students and parents see only non-blocked visible channels
     record.viewable_by?(user)
   end
 
   def coach_or_admin?
-    return true if user.institution_roles.exists?
+    inst_role = user.institution_roles.find_by(
+      role: InstitutionRole::MANAGEABLE_BY.keys + [ "super_admin" ]
+    )
+    if inst_role
+      return true if inst_role.super_admin? || inst_role.district_id.present?
+      return record.season.sport.school_id == inst_role.school_id
+    end
 
     user.season_memberships.active
         .where(role: %i[head_coach assistant_coach])

@@ -4,7 +4,6 @@ class Sport < ApplicationRecord
 
   has_many :coop_authorizations, dependent: :destroy
   has_many :coop_schools, through: :coop_authorizations, source: :school
-  has_many :team_levels, dependent: :destroy
   has_many :seasons, dependent: :destroy
   has_many :season_memberships, through: :seasons
   has_many :users, through: :season_memberships
@@ -36,5 +35,22 @@ class Sport < ApplicationRecord
 
   def current_season
     seasons.active.order(starts_at: :desc).first
+  end
+
+  def commissioner
+    sport_template.sport_commissionerships
+                  .active
+                  .find_by(district: school.district)
+                  &.user
+  end
+
+  def commissioner=(user)
+    c = sport_template.sport_commissionerships.find_or_initialize_by(district: school.district)
+    if user
+      c.assign_attributes(user: user, status: :active)
+      c.save!
+    else
+      c.update!(status: :inactive) if c.persisted?
+    end
   end
 end

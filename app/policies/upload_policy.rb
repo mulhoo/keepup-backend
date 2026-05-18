@@ -9,8 +9,13 @@ class UploadPolicy < ApplicationPolicy
     record.is_a?(User) && record.id == user.id
   end
 
-  # Any active coach of the sport may submit a sport emoji
-  def sport_emoji?
+  # Any active coach of the sport may upload sport images
+  def sport_emoji?   = coach_for_sport?
+  def sport_banner?  = coach_for_sport?
+
+  private
+
+  def coach_for_sport?
     record.is_a?(Sport) &&
       user.season_memberships.active
           .joins(:season)

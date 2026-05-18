@@ -28,7 +28,7 @@ module Demo
       Rails.logger.info("[Demo::Messages] moderation source=#{result[:source]} score=#{result[:score].round(3)} tier=#{tier} channel=#{@channel.id} message=#{message.id}")
       ModerationNotificationJob.perform_later("Message", message.id, tier) if message.flagged?
       BroadcastMessageJob.perform_later(message.id)
-      PreTranslateMessageJob.perform_later(message.id) unless sender_role == "student"
+      PreTranslateMessageJob.perform_later(message.id)
 
       render json: {
         message:   serialize_message(message, current_user),
@@ -106,25 +106,20 @@ module Demo
         return render json: { error: "No preferred language set on your account." }, status: :unprocessable_entity
       end
 
-      unless staff_authored?(@message)
-        return render json: {
-          message_id:      @message.id,
-          on_device:       true,
-          translation_path: "on_device",
-          note:            "In the KeepUp mobile app, Gemma translates this message directly on your device — no content is ever sent to a server.",
-          demo_app_note:   "Download the KeepUp demo app to see on-device translation in action."
-        }
-      end
-
       cached = @message.message_translations.find_by(language: target_language)
       if cached
         return render json: translation_response(@message, cached.translated_text, target_language, from_cache: true)
       end
 
-      result = if DeeplTranslator.available?
+      context = @message.channel.broadcast? ? "announcement" : "message"
+
+      # Student content routes to self-hosted Gemma only — no third-party egress (FERPA/COPPA).
+      # Staff/coach content may use Haiku for quality; Gemma is the fallback.
+      result = if !staff_authored?(@message)
+        Gemma::Translator.translate(text: @message.content, target_language:, context:)
+      elsif DeeplTranslator.available?
         DeeplTranslator.translate(text: @message.content, target_language:)
       else
-        context = @message.channel.broadcast? ? "announcement" : "message"
         Gemma::Translator.translate(text: @message.content, target_language:, context:)
       end
 
@@ -266,7 +261,7 @@ module Demo
         created_at:       msg.created_at.iso8601,
         indicator:        flag_indicator(msg, is_sender),
         translatable:     !blocked,
-        translation_path: blocked ? nil : (staff_authored?(msg) ? "server" : "on_device"),
+        translation_path: blocked ? nil : "server",
         reactions:        reactions,
         reply_count:      msg.message_thread_as_parent&.reply_count || 0
       }

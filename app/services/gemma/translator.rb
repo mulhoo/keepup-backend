@@ -1,9 +1,6 @@
 module Gemma
-  # Translates coach/AD-authored text via the FastAPI /translate endpoint.
-  #
-  # COPPA boundary: only call this for content authored by coaches, ADs, and school admins.
-  # Student message translation runs on-device in the mobile app — never through here.
-  #
+  # Translates text via the self-hosted FastAPI /translate endpoint.
+  # Gemma runs on our own infrastructure — no third-party egress, safe for student content.
   # target_language is a free-form language name (e.g. "French", "Arabic", "Japanese").
   class Translator
     TranslationResult = Data.define(:translated_text, :source_language, :target_language, :language_name)

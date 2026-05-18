@@ -14,12 +14,20 @@ class PreTranslateMessageJob < ApplicationJob
 
     return if target_languages.empty?
 
-    context = message.channel.broadcast? ? "announcement" : "message"
+    context        = message.channel.broadcast? ? "announcement" : "message"
+    student_sender = message.sender.institution_roles.empty? &&
+                     !message.sender.season_memberships
+                       .where(season_id: message.channel.season_id)
+                       .where(role: %w[head_coach assistant_coach])
+                       .exists?
 
     target_languages.uniq.each do |lang|
       next if message.message_translations.exists?(language: lang)
 
-      result = if DeeplTranslator.available?
+      # Student content stays on self-hosted Gemma — no third-party egress (FERPA/COPPA).
+      result = if student_sender
+        Gemma::Translator.translate(text: message.content, target_language: lang, context:)
+      elsif DeeplTranslator.available?
         DeeplTranslator.translate(text: message.content, target_language: lang)
       else
         Gemma::Translator.translate(text: message.content, target_language: lang, context:)

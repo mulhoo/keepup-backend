@@ -79,10 +79,10 @@ Rails.application.routes.draw do
         get  :messages
         post :send_message
         post :mark_read
-        post 'messages/:message_id/report', action: :report_dm_message
+        post "messages/:message_id/report", action: :report_dm_message
       end
     end
-    get  "users/:id", to: "users#profile"
+    get "users/:id", to: "users#profile"
     resources :channels,      only: [ :index ] do
       post   :mark_read, on: :member
       delete :leave,     on: :member

@@ -25,7 +25,7 @@ module Demo
         id:         child.id,
         first_name: child.first_name,
         last_name:  child.last_name,
-        sports:     sports,
+        sports:     sports
       }
     end
 
@@ -58,7 +58,7 @@ module Demo
         season_name:          season.name,
         athletic_season:      template.athletic_season,
         coaches:              coaches,
-        recent_announcements: announcements,
+        recent_announcements: announcements
       }
     end
 

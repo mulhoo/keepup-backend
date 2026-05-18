@@ -42,13 +42,13 @@ module Demo
         metadata:    {
           child_name:   child.full_name,
           parent_name:  current_user.full_name,
-          note:         note.presence,
+          note:         note.presence
         }
       )
 
       render json: {
         notified_at: notified_at.iso8601,
-        ad_count:    ad_roles.size,
+        ad_count:    ad_roles.size
       }
     end
 

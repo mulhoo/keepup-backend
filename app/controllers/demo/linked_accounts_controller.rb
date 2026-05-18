@@ -60,8 +60,8 @@ module Demo
           commissioner: nil,
           athlete_count: sm.season.season_memberships.active.student.count,
           coaches:       coaches_for(sm.season),
-          coach_role:    sm.role,
-        } ],
+          coach_role:    sm.role
+        } ]
       }
     end
 

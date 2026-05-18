@@ -765,12 +765,12 @@ swim_prev_athletes = Channel.find_or_create_by!(season: swim_season_prev, name: 
   c.created_by = head_coach; c.channel_type = :athletes_only; c.system_generated = true
 end
 
-[swim_prev_general, swim_prev_announcements].each do |ch|
-  [head_coach, asst_coach, student_captain, student_1, student_2, parent_1, captain_parent].each do |u|
+[ swim_prev_general, swim_prev_announcements ].each do |ch|
+  [ head_coach, asst_coach, student_captain, student_1, student_2, parent_1, captain_parent ].each do |u|
     ChannelMembership.find_or_create_by!(channel: ch, user: u)
   end
 end
-[student_captain, student_1, student_2].each do |u|
+[ student_captain, student_1, student_2 ].each do |u|
   ChannelMembership.find_or_create_by!(channel: swim_prev_athletes, user: u)
 end
 
@@ -809,8 +809,8 @@ polo_prev_announcements = Channel.find_or_create_by!(season: polo_season_prev, n
   c.created_by = head_coach; c.channel_type = :broadcast; c.system_generated = true
 end
 
-[polo_prev_general, polo_prev_announcements].each do |ch|
-  [head_coach, polo_coach, student_3, polo_student_1, polo_student_2, polo_student_3].each do |u|
+[ polo_prev_general, polo_prev_announcements ].each do |ch|
+  [ head_coach, polo_coach, student_3, polo_student_1, polo_student_2, polo_student_3 ].each do |u|
     ChannelMembership.find_or_create_by!(channel: ch, user: u)
   end
 end
@@ -844,8 +844,8 @@ bball_prev_announcements = Channel.find_or_create_by!(season: bball_season_prev,
   c.created_by = ahs_basketball_coach; c.channel_type = :broadcast; c.system_generated = true
 end
 
-[bball_prev_general, bball_prev_announcements].each do |ch|
-  [ahs_basketball_coach, ahs_basketball_asst].each do |u|
+[ bball_prev_general, bball_prev_announcements ].each do |ch|
+  [ ahs_basketball_coach, ahs_basketball_asst ].each do |u|
     ChannelMembership.find_or_create_by!(channel: ch, user: u)
   end
 end
@@ -876,8 +876,8 @@ bhs_swim_prev_announcements = Channel.find_or_create_by!(season: bhs_swim_season
   c.created_by = bhs_swim_coach; c.channel_type = :broadcast; c.system_generated = true
 end
 
-[bhs_swim_prev_general, bhs_swim_prev_announcements].each do |ch|
-  [bhs_swim_coach, bhs_swim_student_1, bhs_swim_student_2].each do |u|
+[ bhs_swim_prev_general, bhs_swim_prev_announcements ].each do |ch|
+  [ bhs_swim_coach, bhs_swim_student_1, bhs_swim_student_2 ].each do |u|
     ChannelMembership.find_or_create_by!(channel: ch, user: u)
   end
 end
@@ -1653,7 +1653,7 @@ baseball_athletes = [
   { email: "jose.r@ahs.student.edu",   first: "Jose",   last: "Reyes",     dob: Date.new(2008, 11, 19), grade: "11", pos: "Center Field" },
   { email: "nate.h@ahs.student.edu",   first: "Nate",   last: "Hughes",    dob: Date.new(2009, 2, 22), grade: "10", pos: "First Base"  },
   { email: "elijah.b@ahs.student.edu", first: "Elijah", last: "Brooks",    dob: Date.new(2009, 7, 15), grade: "10", pos: "Left Field"  },
-  { email: "sam.t@ahs.student.edu",    first: "Sam",    last: "Truong",    dob: Date.new(2010, 4,  8), grade: "9",  pos: "Second Base" },
+  { email: "sam.t@ahs.student.edu",    first: "Sam",    last: "Truong",    dob: Date.new(2010, 4,  8), grade: "9",  pos: "Second Base" }
 ]
 
 baseball_player_users = baseball_athletes.map do |attrs|
@@ -1980,7 +1980,7 @@ carlos_m = User.find_by!(email: "carlos.m@bhs.student.edu")
     ago: 12.hours, duration: 900, search_reason: nil,
     names: [ "Jordan Lee", "Carlos Mendez" ], keyword: "coach", found: 6,
     exit_reason: "investigation_ongoing"
-  },
+  }
 ].each do |s|
   base      = s[:ago].ago
   from_date = 30.days.ago.to_date.to_s
@@ -2109,7 +2109,7 @@ end
   "coach.girlsswim@bhs.edu"     => "she/her",
   "olivia.f@chs.student.edu"    => "she/her",
   "priya.k@ehs.student.edu"     => "she/her",
-  "ad@rhs.edu"                  => "she/her",
+  "ad@rhs.edu"                  => "she/her"
 }.each do |email, pronouns|
   User.where(email: email).update_all(pronouns: pronouns)
 end
@@ -2138,7 +2138,7 @@ end
   { event: "200 Free Relay",        kingco: "1:45.50", districts_wildcard: "1:44.00", districts: "1:43.50", state: "1:41.00" },
   { event: "100 Backstroke",        kingco: "1:04.50", districts_wildcard: "1:04.00", districts: "1:03.50", state: "1:02.00" },
   { event: "100 Breaststroke",      kingco: "1:16.00", districts_wildcard: "1:14.50", districts: "1:13.00", state: "1:11.50" },
-  { event: "400 Free Relay",        kingco: "3:55.00", districts_wildcard: "3:52.50", districts: "3:51.00", state: "3:47.00" },
+  { event: "400 Free Relay",        kingco: "3:55.00", districts_wildcard: "3:52.50", districts: "3:51.00", state: "3:47.00" }
 ].each do |row|
   TimeStandard.create!(sport_template: swim_template, gender: "girls",
     event_name: row[:event], kingco: row[:kingco],
@@ -2167,12 +2167,12 @@ r1 = MeetResult.create!(
       { "place" => 2, "athlete" => "Jordan Lee",   "school" => "AHS", "time" => "1:03.5" } ] },
     { "event" => "200 Free Relay", "results" => [
       { "place" => 1, "athlete" => "AHS Relay", "school" => "AHS", "time" => "1:43.1", "personal_best" => true },
-      { "place" => 2, "athlete" => "BHS Relay", "school" => "BHS", "time" => "1:45.8" } ] },
+      { "place" => 2, "athlete" => "BHS Relay", "school" => "BHS", "time" => "1:45.8" } ] }
   ]
 )
 r1.ai_standouts = [
   "Taylor Brooks (AHS) — 100 Fly: 1:01.4 · Season PR · District rank #5",
-  "200 Medley Relay (AHS) — 1:51.9 · Team season best",
+  "200 Medley Relay (AHS) — 1:51.9 · Team season best"
 ]
 r1.save!
 
@@ -2197,12 +2197,12 @@ r2 = MeetResult.create!(
       { "place" => 2, "athlete" => "Priya Patel",  "school" => "Crest", "time" => "1:06.4" } ] },
     { "event" => "400 Free Relay", "results" => [
       { "place" => 1, "athlete" => "BHS Relay",   "school" => "BHS",   "time" => "3:52.4" },
-      { "place" => 2, "athlete" => "Crest Relay", "school" => "Crest", "time" => "4:01.1" } ] },
+      { "place" => 2, "athlete" => "Crest Relay", "school" => "Crest", "time" => "4:01.1" } ] }
   ]
 )
 r2.ai_standouts = [
   "Maya Chen (Crest) — 200 IM: 2:14.8 · Season PR",
-  "Sofia Reyes (BHS) — 50 Free: 28.1 · Season PR",
+  "Sofia Reyes (BHS) — 50 Free: 28.1 · Season PR"
 ]
 r2.save!
 
@@ -2227,12 +2227,12 @@ r3 = MeetResult.create!(
       { "place" => 2, "athlete" => "Maya Chen", "school" => "Crest", "time" => "1:13.2" } ] },
     { "event" => "200 Free Relay", "results" => [
       { "place" => 1, "athlete" => "AHS Relay",   "school" => "AHS",   "time" => "1:42.8", "personal_best" => true },
-      { "place" => 2, "athlete" => "Crest Relay", "school" => "Crest", "time" => "1:49.3" } ] },
+      { "place" => 2, "athlete" => "Crest Relay", "school" => "Crest", "time" => "1:49.3" } ] }
   ]
 )
 r3.ai_standouts = [
   "Jordan Lee (AHS) — 100 Back: 1:02.1 · Season PR · District rank #4",
-  "200 Free Relay (AHS) — 1:42.8 · Season PR",
+  "200 Free Relay (AHS) — 1:42.8 · Season PR"
 ]
 r3.save!
 
@@ -2256,13 +2256,13 @@ r4 = MeetResult.create!(
       { "place" => 2, "athlete" => "Alex Rivera", "school" => "AHS", "time" => "28.2" } ] },
     { "event" => "400 Free Relay", "results" => [
       { "place" => 1, "athlete" => "AHS Relay", "school" => "AHS", "time" => "3:48.2", "personal_best" => true },
-      { "place" => 2, "athlete" => "BHS Relay", "school" => "BHS", "time" => "3:52.1" } ] },
+      { "place" => 2, "athlete" => "BHS Relay", "school" => "BHS", "time" => "3:52.1" } ] }
   ]
 )
 r4.ai_standouts = [
   "Alex Rivera (AHS) — 100 Free: 55.3 · Season PR",
   "Taylor Brooks (AHS) — 100 Fly: 1:00.8 · Season PR",
-  "400 Free Relay (AHS) — 3:48.2 · Season PR",
+  "400 Free Relay (AHS) — 3:48.2 · Season PR"
 ]
 r4.save!
 
@@ -2278,7 +2278,7 @@ r5 = MeetResult.create!(
 )
 r5.ai_standouts = [
   "Casey Lee (AHS) — 4 goals, 2 assists",
-  "Marcus Hill (AHS) — 3 goals, shutout quarter in goal",
+  "Marcus Hill (AHS) — 3 goals, shutout quarter in goal"
 ]
 r5.save!
 
@@ -2294,7 +2294,7 @@ r6 = MeetResult.create!(
 )
 r6.ai_standouts = [
   "Casey Lee (AHS) — 4 goals",
-  "Dion Carter (AHS) — 2 goals",
+  "Dion Carter (AHS) — 2 goals"
 ]
 r6.save!
 
@@ -2325,7 +2325,7 @@ r7 = MeetResult.create!(
       { "place" => 1, "athlete" => "Shaw, Ryan",        "school" => "SAMM", "time" => "2:06.39" },
       { "place" => 2, "athlete" => "Keibler, Walter",   "school" => "SAMM", "time" => "2:15.77" },
       { "place" => 3, "athlete" => "Dunsmore, Logan",   "school" => "SAMM", "time" => "2:29.42" },
-      { "place" => 4, "athlete" => "Chachkov, Nicholas","school" => "AHS",  "time" => "2:30.95" },
+      { "place" => 4, "athlete" => "Chachkov, Nicholas", "school" => "AHS",  "time" => "2:30.95" },
       { "place" => 5, "athlete" => "Sullivan, Rhys",    "school" => "AHS",  "time" => "2:34.65" } ] },
     { "event" => "50 Freestyle", "results" => [
       { "place" => 1, "athlete" => "Shaw, Nathan",      "school" => "SAMM", "time" => "21.88" },
@@ -2365,7 +2365,7 @@ r7 = MeetResult.create!(
       { "place" => 2, "athlete" => "Shaw, Ryan",         "school" => "SAMM", "time" => "1:00.28" },
       { "place" => 3, "athlete" => "Choy, Matthew",      "school" => "AHS",  "time" => "1:11.01" },
       { "place" => 4, "athlete" => "Beckmann, Kurtis",   "school" => "AHS",  "time" => "1:13.35" },
-      { "place" => 5, "athlete" => "Michelet, Alexandre","school" => "AHS",  "time" => "1:15.36" } ] },
+      { "place" => 5, "athlete" => "Michelet, Alexandre", "school" => "AHS",  "time" => "1:15.36" } ] },
     { "event" => "100 Breaststroke", "results" => [
       { "place" => 1, "athlete" => "Choy, Matthew",    "school" => "AHS",  "time" => "1:03.80" },
       { "place" => 2, "athlete" => "Song, Jay",         "school" => "AHS",  "time" => "1:04.96" },
@@ -2378,14 +2378,14 @@ r7 = MeetResult.create!(
       { "place" => 2, "athlete" => "SAMM B", "school" => "SAMM", "time" => "3:56.36", "relay_members" => "Browder, McGee, Ferguson, Dunsmore" },
       { "place" => 3, "athlete" => "AHS A",  "school" => "AHS",  "time" => "4:05.14", "relay_members" => "Choundhary, Chachkov, Zhao, Crowley" },
       { "place" => 4, "athlete" => "SAMM C", "school" => "SAMM", "time" => "4:24.00", "relay_members" => "Martin K, Miller, Carr, Paterson" },
-      { "place" => 5, "athlete" => "AHS C",  "school" => "AHS",  "time" => "4:37.37", "relay_members" => "Beckmann, Page, Geels, Fithian" } ] },
+      { "place" => 5, "athlete" => "AHS C",  "school" => "AHS",  "time" => "4:37.37", "relay_members" => "Beckmann, Page, Geels, Fithian" } ] }
   ]
 )
 r7.ai_standouts = [
   "Nathan Shaw (SAMM) — 50 Free: 21.88 · Meet best",
   "Walter Keibler (SAMM) — 200 IM: 2:15.77 / 500 Free: 5:27.06 · Dual sweep",
   "Matthew Choy (AHS) — 100 Breast: 1:03.80 / 100 Back: 1:11.01 · Top AHS scorer",
-  "Ethan Lin (AHS) — 50 Free: 22.14 / 500 Free: 5:40.45",
+  "Ethan Lin (AHS) — 50 Free: 22.14 / 500 Free: 5:40.45"
 ]
 r7.save!
 
@@ -2435,7 +2435,7 @@ r8 = MeetResult.create!(
       { "place" => 1, "athlete" => "Ambekar, Pranag", "school" => "EHS",  "time" => "57.80" },
       { "place" => 2, "athlete" => "Kong, Jonathan",  "school" => "JUAN", "time" => "1:04.20" },
       { "place" => 3, "athlete" => "Entman, Cory",    "school" => "JUAN", "time" => "1:05.51" },
-      { "place" => 4, "athlete" => "Bhargava, Saarth","school" => "JUAN", "time" => "1:07.96" } ] },
+      { "place" => 4, "athlete" => "Bhargava, Saarth", "school" => "JUAN", "time" => "1:07.96" } ] },
     { "event" => "500 Freestyle", "results" => [
       { "place" => 1, "athlete" => "Francis, Will",   "school" => "EHS",  "time" => "5:55.24" },
       { "place" => 2, "athlete" => "Sriram, Pranay",  "school" => "EHS",  "time" => "6:10.34" },
@@ -2449,7 +2449,7 @@ r8 = MeetResult.create!(
       { "place" => 1, "athlete" => "Ramsby, Ender",    "school" => "EHS",  "time" => "56.80", "personal_best" => true },
       { "place" => 2, "athlete" => "Martin, Grayson",  "school" => "EHS",  "time" => "1:05.04" },
       { "place" => 3, "athlete" => "Giuliani, Dario",  "school" => "JUAN", "time" => "1:07.89" },
-      { "place" => 4, "athlete" => "Villanueva, Paolo","school" => "EHS",  "time" => "1:11.25" },
+      { "place" => 4, "athlete" => "Villanueva, Paolo", "school" => "EHS",  "time" => "1:11.25" },
       { "place" => 5, "athlete" => "Kong, Jonathan",   "school" => "JUAN", "time" => "1:16.22" } ] },
     { "event" => "100 Breaststroke", "results" => [
       { "place" => 1, "athlete" => "Rawal, Neil",    "school" => "EHS",  "time" => "1:09.37" },
@@ -2461,14 +2461,14 @@ r8 = MeetResult.create!(
       { "place" => 1, "athlete" => "EHS A",  "school" => "EHS",  "time" => "3:38.27", "relay_members" => "Ramsby, Cao, Martin, Sriram" },
       { "place" => 2, "athlete" => "EHS B",  "school" => "EHS",  "time" => "3:57.47", "relay_members" => "Francis, Rotkin, Ambekar, Villanueva P" },
       { "place" => 3, "athlete" => "JUAN A", "school" => "JUAN", "time" => "4:20.62", "relay_members" => "Fiala, Bhargava, Rydell, Giuliani" },
-      { "place" => 4, "athlete" => "EHS C",  "school" => "EHS",  "time" => "4:15.21", "relay_members" => "Pendse, Stuart, Rohit, Villanueva C" } ] },
+      { "place" => 4, "athlete" => "EHS C",  "school" => "EHS",  "time" => "4:15.21", "relay_members" => "Pendse, Stuart, Rohit, Villanueva C" } ] }
   ]
 )
 r8.ai_standouts = [
   "Adam Cao (EHS) — 200 IM: 2:08.32 / 100 Fly: 55.72 · IM-Fly double",
   "Ender Ramsby (EHS) — 100 Back: 56.80 · Season best",
   "Makar Shnitko (EHS) — Diving: 289.40 · District high score",
-  "Pranag Ambekar (EHS) — 200 Free: 2:02.49 / 100 Free: 57.80 · Freestyle double",
+  "Pranag Ambekar (EHS) — 200 Free: 2:02.49 / 100 Free: 57.80 · Freestyle double"
 ]
 r8.save!
 
@@ -2490,7 +2490,7 @@ r9 = MeetResult.create!(
     { "event" => "200 Freestyle", "results" => [
       { "place" => 1, "athlete" => "Lee, Jacob",       "school" => "AHS", "time" => "1:43.89", "personal_best" => true },
       { "place" => 2, "athlete" => "Ramsby, Ender",    "school" => "EHS", "time" => "1:49.31" },
-      { "place" => 3, "athlete" => "Choundhary, Nakul","school" => "AHS", "time" => "2:04.68" },
+      { "place" => 3, "athlete" => "Choundhary, Nakul", "school" => "AHS", "time" => "2:04.68" },
       { "place" => 4, "athlete" => "Martin, Grayson",  "school" => "EHS", "time" => "2:08.32" },
       { "place" => 5, "athlete" => "Zhang, Victor",    "school" => "AHS", "time" => "2:13.53" },
       { "place" => 6, "athlete" => "Mansour, Yousef",  "school" => "EHS", "time" => "2:14.60" } ] },
@@ -2502,7 +2502,7 @@ r9 = MeetResult.create!(
       { "place" => 5, "athlete" => "Nelson, Maxwell", "school" => "AHS", "time" => "2:49.73" } ] },
     { "event" => "50 Freestyle", "results" => [
       { "place" => 1, "athlete" => "Brown, Justin",      "school" => "EHS", "time" => "21.47" },
-      { "place" => 2, "athlete" => "Hammer, Maximillian","school" => "AHS", "time" => "23.30" },
+      { "place" => 2, "athlete" => "Hammer, Maximillian", "school" => "AHS", "time" => "23.30" },
       { "place" => 3, "athlete" => "Crowley, Ian",       "school" => "AHS", "time" => "23.68" },
       { "place" => 4, "athlete" => "Martin, Grayson",    "school" => "EHS", "time" => "24.29" },
       { "place" => 5, "athlete" => "Rawal, Neil",        "school" => "EHS", "time" => "25.27" },
@@ -2524,7 +2524,7 @@ r9 = MeetResult.create!(
       { "place" => 2, "athlete" => "Sriram, Pranay",    "school" => "EHS", "time" => "55.20" },
       { "place" => 3, "athlete" => "Gawthrop, Ross",    "school" => "AHS", "time" => "57.91" },
       { "place" => 4, "athlete" => "Hoener, Brodie",    "school" => "AHS", "time" => "57.99" },
-      { "place" => 5, "athlete" => "Chachkov, Nicholas","school" => "AHS", "time" => "58.65" },
+      { "place" => 5, "athlete" => "Chachkov, Nicholas", "school" => "AHS", "time" => "58.65" },
       { "place" => 6, "athlete" => "Rawal, Neil",       "school" => "EHS", "time" => "58.68" } ] },
     { "event" => "500 Freestyle", "results" => [
       { "place" => 1, "athlete" => "Ramsby, Ender",  "school" => "EHS", "time" => "4:54.35" },
@@ -2553,14 +2553,14 @@ r9 = MeetResult.create!(
       { "place" => 1, "athlete" => "AHS A", "school" => "AHS", "time" => "3:16.92", "relay_members" => "Lee, Hammer, Chen C, Lin", "personal_best" => true },
       { "place" => 2, "athlete" => "EHS A", "school" => "EHS", "time" => "3:26.01", "relay_members" => "Ramsby, Cao, Martin, Brown" },
       { "place" => 3, "athlete" => "EHS B", "school" => "EHS", "time" => "3:48.87", "relay_members" => "Rawal, Rotkin, Sriram, Mansour" },
-      { "place" => 4, "athlete" => "AHS C", "school" => "AHS", "time" => "3:54.89", "relay_members" => "Crowley, Hoener, Choundhary, Cheng" } ] },
+      { "place" => 4, "athlete" => "AHS C", "school" => "AHS", "time" => "3:54.89", "relay_members" => "Crowley, Hoener, Choundhary, Cheng" } ] }
   ]
 )
 r9.ai_standouts = [
   "Jacob Lee (AHS) — 200 Free: 1:43.89 (PR) / 100 Fly: 53.78 (PR) · Season sweep",
   "Justin Brown (EHS) — 50 Free: 21.47 / 100 Breast: 57.40 · Sprint-breast double",
   "Makar Shnitko (EHS) — Diving: 304.80 · Season high",
-  "400 Free Relay (AHS) — 3:16.92 · Meet-winning relay · Season PR",
+  "400 Free Relay (AHS) — 3:16.92 · Meet-winning relay · Season PR"
 ]
 r9.save!
 
@@ -2583,13 +2583,13 @@ r10 = MeetResult.create!(
       { "place" => 4, "athlete" => "Hooda, Dhruv",      "school" => "BHS",  "time" => "2:53.81" },
       { "place" => 5, "athlete" => "Hughes, Elliot",    "school" => "INGL", "time" => "3:36.67" } ] },
     { "event" => "200 Individual Medley", "results" => [
-      { "place" => 1, "athlete" => "Zaporozhets, Sergey","school" => "BHS",  "time" => "2:07.71" },
+      { "place" => 1, "athlete" => "Zaporozhets, Sergey", "school" => "BHS",  "time" => "2:07.71" },
       { "place" => 2, "athlete" => "King, Marcos",        "school" => "INGL", "time" => "2:21.31" },
       { "place" => 3, "athlete" => "Adante, Victor",      "school" => "BHS",  "time" => "2:41.52" } ] },
     { "event" => "50 Freestyle", "results" => [
       { "place" => 1, "athlete" => "Replogle, West",     "school" => "INGL", "time" => "24.32" },
       { "place" => 2, "athlete" => "Vasilescu, Edi",     "school" => "BHS",  "time" => "24.93" },
-      { "place" => 3, "athlete" => "Aleksandrov, Adrian","school" => "INGL", "time" => "25.72" },
+      { "place" => 3, "athlete" => "Aleksandrov, Adrian", "school" => "INGL", "time" => "25.72" },
       { "place" => 4, "athlete" => "Berrios, Gabriel",   "school" => "BHS",  "time" => "29.10" },
       { "place" => 5, "athlete" => "Schmoll, Hunter",    "school" => "BHS",  "time" => "30.35" },
       { "place" => 6, "athlete" => "Gunderson, David",   "school" => "INGL", "time" => "30.96" } ] },
@@ -2618,7 +2618,7 @@ r10 = MeetResult.create!(
     { "event" => "100 Backstroke", "results" => [
       { "place" => 1, "athlete" => "Vasilescu, Edi",  "school" => "BHS",  "time" => "59.71" },
       { "place" => 2, "athlete" => "Replogle, West",  "school" => "INGL", "time" => "1:03.05" },
-      { "place" => 3, "athlete" => "O'Farrell, Mason","school" => "BHS",  "time" => "1:07.97" },
+      { "place" => 3, "athlete" => "O'Farrell, Mason", "school" => "BHS",  "time" => "1:07.97" },
       { "place" => 4, "athlete" => "Zeng, Zachary",   "school" => "INGL", "time" => "1:12.51" },
       { "place" => 5, "athlete" => "Gillen, John",    "school" => "INGL", "time" => "1:17.08" },
       { "place" => 6, "athlete" => "Brooks, Quinten", "school" => "BHS",  "time" => "1:23.41" } ] },
@@ -2633,14 +2633,14 @@ r10 = MeetResult.create!(
       { "place" => 1, "athlete" => "BHS A",  "school" => "BHS",  "time" => "3:33.17", "relay_members" => "Sun, Vasilescu, Byelykh, Zaporozhets" },
       { "place" => 2, "athlete" => "INGL A", "school" => "INGL", "time" => "3:53.94", "relay_members" => "Na, Aleksandrov, Replogle W, Rader" },
       { "place" => 3, "athlete" => "INGL B", "school" => "INGL", "time" => "4:21.96", "relay_members" => "Gillen, Replogle D, Speed, Zeng" },
-      { "place" => 4, "athlete" => "BHS B",  "school" => "BHS",  "time" => "5:22.01", "relay_members" => "Brooks, Israel, Schmoll, Smith" } ] },
+      { "place" => 4, "athlete" => "BHS B",  "school" => "BHS",  "time" => "5:22.01", "relay_members" => "Brooks, Israel, Schmoll, Smith" } ] }
   ]
 )
 r10.ai_standouts = [
   "Roman Byelykh (BHS) — 200 Free: 1:54.71 / 500 Free: 5:03.59 · Distance double",
   "Edi Vasilescu (BHS) — 100 Back: 59.71 / 50 Free: 24.93 · Sprint-back double",
   "Sergey Zaporozhets (BHS) — 200 IM: 2:07.71 / 100 Fly: 59.76",
-  "Ethan Na (INGL) — 100 Breast: 1:08.66 · Top Inglemoor scorer",
+  "Ethan Na (INGL) — 100 Breast: 1:08.66 · Top Inglemoor scorer"
 ]
 r10.save!
 
@@ -2659,7 +2659,7 @@ r10.save!
   { result: r2, athlete: "Maya Chen",         school: "Crest", event: "200 Individual Medley", time: "2:14.8", level: "kingco",           standard: "2:22.00", status: "pending"  },
   { result: r2, athlete: "Maya Chen",         school: "Crest", event: "200 Individual Medley", time: "2:14.8", level: "districts_wildcard", standard: "2:18.00", status: "pending" },
   { result: r2, athlete: "BHS 400 Free Relay", school: "BHS",  event: "400 Free Relay",      time: "3:52.4", level: "kingco",              standard: "3:55.00", status: "pending"  },
-  { result: r2, athlete: "BHS 400 Free Relay", school: "BHS",  event: "400 Free Relay",      time: "3:52.4", level: "districts_wildcard",  standard: "3:52.50", status: "pending"  },
+  { result: r2, athlete: "BHS 400 Free Relay", school: "BHS",  event: "400 Free Relay",      time: "3:52.4", level: "districts_wildcard",  standard: "3:52.50", status: "pending"  }
 ].each do |f|
   QualificationFlag.create!(
     meet_result:   f[:result],
@@ -2757,7 +2757,7 @@ end
 
 [
   rhs_asst_coach, rhs_ad,
-  rhs_student_1, rhs_student_2, rhs_student_3, rhs_parent_1, rhs_parent_2,
+  rhs_student_1, rhs_student_2, rhs_student_3, rhs_parent_1, rhs_parent_2
 ].each do |u|
   ChannelMembership.find_or_create_by!(channel: rhs_general,       user: u)
   ChannelMembership.find_or_create_by!(channel: rhs_announcements, user: u)
@@ -2856,7 +2856,7 @@ end
 
 [
   vhs_head_coach, vhs_ad,
-  vhs_student_1, vhs_student_2, vhs_student_3, vhs_parent_1, vhs_parent_2,
+  vhs_student_1, vhs_student_2, vhs_student_3, vhs_parent_1, vhs_parent_2
 ].each do |u|
   ChannelMembership.find_or_create_by!(channel: vhs_general,       user: u)
   ChannelMembership.find_or_create_by!(channel: vhs_announcements, user: u)

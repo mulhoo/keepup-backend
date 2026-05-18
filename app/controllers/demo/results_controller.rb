@@ -91,13 +91,13 @@ module Demo
           away_score:   away_score,
           venue:        params[:venue],
           date:         params[:date],
-          highlights:   highlights,
+          highlights:   highlights
         })
         render json: {
           summary:       response[:summary],
           focus_athlete: response[:focus_athlete],
           focus_event:   response[:focus_event],
-          source:        "gemma4",
+          source:        "gemma4"
         }
       rescue GemmaClient::ServiceUnavailable
         render json: { summary: template_summary(home_school, away_school, home_score, away_score, highlights), source: "template" }
@@ -113,7 +113,7 @@ module Demo
         home_school:  "",
         home_score:   0,
         away_school:  "",
-        away_score:   0,
+        away_score:   0
       }
     end
 
@@ -170,7 +170,7 @@ module Demo
         ai_focus:       r.ai_focus,
         uploaded_by:    r.uploaded_by&.full_name,
         uploaded_at:    r.created_at&.iso8601,
-        status:         r.status,
+        status:         r.status
       }
     end
 

@@ -72,7 +72,7 @@ module Demo
         other_user:      { id: other.id, first_name: other.first_name, last_name: other.last_name, role: other_role },
         last_message:    last_dm&.content,
         last_message_at: conv.last_message_at,
-        unread_count:    unread,
+        unread_count:    unread
       }, status: :ok
     rescue ActiveRecord::RecordInvalid => e
       render json: { error: e.message }, status: :unprocessable_entity
@@ -106,11 +106,11 @@ module Demo
             id:         other.id,
             first_name: other.first_name,
             last_name:  other.last_name,
-            role:       other_role,
+            role:       other_role
           },
           last_message:    last_dm&.content,
           last_message_at: conv.last_message_at,
-          unread_count:    unread,
+          unread_count:    unread
         }
       }
     end
@@ -124,7 +124,7 @@ module Demo
           .where(read_at: nil)
           .update_all(read_at: Time.current)
 
-      render json: {ok: true}
+      render json: { ok: true }
     end
 
     def messages
@@ -256,7 +256,7 @@ module Demo
         {
           id:      dm.reply_to.id,
           sender:  dm.reply_to.sender.full_name,
-          content: dm.reply_to.content,
+          content: dm.reply_to.content
         }
       end
 
@@ -270,7 +270,7 @@ module Demo
         created_at:  dm.created_at.iso8601,
         reactions:   [],
         reply_count: 0,
-        reply_to:    reply_preview,
+        reply_to:    reply_preview
       }
     end
   end

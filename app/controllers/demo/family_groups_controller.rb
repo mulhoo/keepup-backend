@@ -142,7 +142,7 @@ module Demo
             name:       u.full_name,
             first_name: u.first_name,
             role:       sm&.role || "unknown",
-            child_name: parent_child_names[u.id]&.join(", "),
+            child_name: parent_child_names[u.id]&.join(", ")
           }
         },
         last_message: last_msg ? {
@@ -185,7 +185,7 @@ module Demo
               id:         sm.user_id,
               name:       sm.user.full_name,
               child_name: parent_to_child_names[sm.user_id]&.join(", "),
-              role:       "parent",
+              role:       "parent"
             }
           }
       }

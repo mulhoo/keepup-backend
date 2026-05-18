@@ -87,7 +87,7 @@ class InvitationsController < ApplicationController
     "student_captain"  => %w[conversation broadcast athletes_only],
     "head_coach"       => %w[conversation broadcast coaches_only],
     "assistant_coach"  => %w[conversation broadcast coaches_only],
-    "parent"           => %w[conversation broadcast],
+    "parent"           => %w[conversation broadcast]
   }.freeze
 
   def add_to_channels(user, invitation)

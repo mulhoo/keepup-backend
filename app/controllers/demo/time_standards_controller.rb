@@ -39,7 +39,7 @@ module Demo
         kingco:             s.kingco,
         districts_wildcard: s.districts_wildcard,
         districts:          s.districts,
-        state:              s.state,
+        state:              s.state
       }
     end
   end

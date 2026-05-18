@@ -10,7 +10,7 @@ module Demo
       "parent"            => %w[general announcements parent-coaches],
       "head_coach"        => %w[general announcements coaches parent-coaches],
       "assistant_coach"   => %w[general announcements coaches parent-coaches],
-      "athletic_director" => %w[general announcements parent-coaches],
+      "athletic_director" => %w[general announcements parent-coaches]
     }.freeze
 
     # GET /demo/channels/:channel_id/members

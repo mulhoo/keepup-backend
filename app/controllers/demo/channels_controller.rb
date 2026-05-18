@@ -15,21 +15,21 @@ module Demo
 
     def mark_read
       ch = Channel.active.find_by(id: params[:id])
-      return render json: {error: "Not found"}, status: :not_found unless ch
-      return render json: {error: "Not authorized"}, status: :forbidden unless ch.viewable_by?(current_user)
+      return render json: { error: "Not found" }, status: :not_found unless ch
+      return render json: { error: "Not authorized" }, status: :forbidden unless ch.viewable_by?(current_user)
 
       membership = ch.channel_memberships.find_by(user: current_user)
       membership&.update!(last_read_at: Time.current)
-      render json: {ok: true}
+      render json: { ok: true }
     end
 
     def leave
       ch = Channel.active.find_by(id: params[:id])
-      return render json: {error: "Not found"}, status: :not_found unless ch
-      return render json: {error: "Cannot leave this channel"}, status: :unprocessable_entity unless leavable?(ch)
+      return render json: { error: "Not found" }, status: :not_found unless ch
+      return render json: { error: "Cannot leave this channel" }, status: :unprocessable_entity unless leavable?(ch)
 
       ch.channel_memberships.find_by(user: current_user)&.destroy
-      render json: {ok: true}
+      render json: { ok: true }
     end
 
     private
@@ -77,7 +77,7 @@ module Demo
         system_generated: ch.system_generated,
         member_count:     ch.channel_memberships.count,
         last_message:     last_msg&.content,
-        unread_count:     unread,
+        unread_count:     unread
       }
     end
   end

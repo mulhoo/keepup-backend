@@ -47,7 +47,7 @@ module Demo
         member_count:     SeasonMembership.active.joins(season: :sport)
                             .where(sports: { school: school }).distinct.count(:user_id),
         principal:        principal ? { first_name: principal.first_name, last_name: principal.last_name, email: principal.email } : nil,
-        athletic_director: ad ? { first_name: ad.first_name, last_name: ad.last_name, email: ad.email } : nil,
+        athletic_director: ad ? { first_name: ad.first_name, last_name: ad.last_name, email: ad.email } : nil
       }
     end
 

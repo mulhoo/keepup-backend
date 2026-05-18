@@ -10,8 +10,8 @@ module Demo
     # GET /demo/users/:id
     def profile
       user = User.active.find_by(id: params[:id])
-      return render json: {error: "Not found"}, status: :not_found unless user
-      return render json: {error: "Not found"}, status: :not_found unless viewable_by_current_user?(user)
+      return render json: { error: "Not found" }, status: :not_found unless user
+      return render json: { error: "Not found" }, status: :not_found unless viewable_by_current_user?(user)
 
       role = nil
       if params[:season_id].present?
@@ -26,7 +26,7 @@ module Demo
         profile_photo_url: user.profile_photo_url,
         pronouns:          user.pronouns,
         role:              role,
-        name_display:      user.name_display,
+        name_display:      user.name_display
       }
     end
 

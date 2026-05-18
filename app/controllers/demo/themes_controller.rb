@@ -2,7 +2,7 @@ module Demo
   class ThemesController < ApplicationController
     include DemoGuard
     before_action :require_demo_mode
-    before_action :require_can_theme, only: [:generate]
+    before_action :require_can_theme, only: [ :generate ]
 
     def index
       themes = Theme.available_to(current_user).order(:scope, :name)
@@ -13,7 +13,7 @@ module Demo
           scope:       t.scope,
           variant:     t.variant,
           school_name: t.school&.name,
-          colors:      t.color_palette,
+          colors:      t.color_palette
         }
       }
     end
@@ -66,7 +66,7 @@ module ThemeColorizer
     "dark purple"   => "#4b0082",
     "dark red"      => "#8b0000",
     "burnt orange"  => "#cc5500",
-    "bright red"    => "#e74c3c",
+    "bright red"    => "#e74c3c"
   }.sort_by { |k, _| -k.length }.to_h.freeze
 
   # Single words (ambiguous modifiers like "forest" / "sky" alone are excluded)
@@ -86,7 +86,7 @@ module ThemeColorizer
     "silver"   => "#9ca3af", "gray"     => "#6b7280", "grey"     => "#6b7280",
     "black"    => "#1c2833", "charcoal" => "#2c3e50",
     "white"    => "#ffffff", "cream"    => "#fefce8",
-    "brown"    => "#784212", "tan"      => "#935116", "bronze"   => "#a0522d",
+    "brown"    => "#784212", "tan"      => "#935116", "bronze"   => "#a0522d"
   }.freeze
 
   NEUTRALS = %w[#ffffff #fefce8 #9ca3af #6b7280 #1c2833 #2c3e50].freeze
@@ -141,7 +141,7 @@ module ThemeColorizer
       color_text_primary:    "#f8fafc",
       color_text_secondary:  "#94a3b8",
       color_text_on_primary: light?(primary) ? "#1c2833" : "#ffffff",
-      color_text_on_accent:  light?(accent)  ? "#1c2833" : "#ffffff",
+      color_text_on_accent:  light?(accent)  ? "#1c2833" : "#ffffff"
     }
   end
 
@@ -156,7 +156,7 @@ module ThemeColorizer
       color_text_primary:    "#0f172a",
       color_text_secondary:  "#475569",
       color_text_on_primary: light?(primary) ? "#1c2833" : "#ffffff",
-      color_text_on_accent:  light?(accent)  ? "#1c2833" : "#ffffff",
+      color_text_on_accent:  light?(accent)  ? "#1c2833" : "#ffffff"
     }
   end
 

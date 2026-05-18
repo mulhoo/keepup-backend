@@ -28,7 +28,7 @@ module Demo
         time:          f.time_str,
         level:         f.level,
         standard_time: f.standard_time,
-        status:        f.status,
+        status:        f.status
       }
     end
   end

@@ -33,7 +33,7 @@ module Demo
         school_year: season.school_year,
         status:      season.status,
         role:        role,
-        school:      { id: school.id, name: school.name },
+        school:      { id: school.id, name: school.name }
       }
     end
   end

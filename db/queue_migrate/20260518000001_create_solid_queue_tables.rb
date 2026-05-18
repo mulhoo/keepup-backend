@@ -8,7 +8,7 @@ class CreateSolidQueueTables < ActiveRecord::Migration[8.0]
       t.string  :active_job_id
       t.datetime :scheduled_at
       t.datetime :finished_at
-      t.string  :concurrency_key
+      t.string :concurrency_key
       t.timestamps null: false
     end
     add_index :solid_queue_jobs, :active_job_id
